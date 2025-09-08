@@ -1,0 +1,24 @@
+{
+  "name": "garangbi",
+  "private": true,
+  "packageManager": "pnpm@9.6.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write .",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "compose:up": "docker-compose up --build",
+    "compose:down": "docker-compose down -v"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "prisma": "6.15.0",
+    "turbo": "^2.1.1"
+  },
+  "dependencies": {
+    "@prisma/client": "6.15.0"
+  }
+}
