@@ -7,6 +7,8 @@
     "dev": "turbo run dev --parallel",
     "dev:web": "pnpm --filter @garangbi/web dev",
     "dev:server": "pnpm --filter @garangbi/server dev",
+    "dev:all": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-all.ps1",
+    "dev:all:studio": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-all.ps1 -Studio",
     "lint": "turbo run lint",
     "format": "prettier --write .",
     "db:push": "prisma db push",
