@@ -8,7 +8,7 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
+  id           String   @id @default(cuid())
   email        String   @unique
   nickname     String
   passwordHash String
@@ -23,7 +23,7 @@ model User {
 }
 
 model Ledger {
-  id            String          @id @default(uuid())
+  id            String          @id @default(cuid())
   name          String
   description   String?
   currency      String          @default("KRW")
@@ -41,7 +41,7 @@ model Ledger {
 }
 
 model LedgerMember {
-  id       String     @id @default(uuid())
+  id       String     @id @default(cuid())
   ledger   Ledger     @relation(fields: [ledgerId], references: [id])
   ledgerId String
   user     User       @relation(fields: [userId], references: [id])
@@ -53,7 +53,7 @@ model LedgerMember {
 }
 
 model AssetGroup {
-  id       String  @id @default(uuid())
+  id       String  @id @default(cuid())
   ledger   Ledger  @relation(fields: [ledgerId], references: [id])
   ledgerId String
   name     String
@@ -63,37 +63,41 @@ model AssetGroup {
 }
 
 model Asset {
-  id                 String     @id @default(uuid())
-  ledger             Ledger     @relation(fields: [ledgerId], references: [id])
+  id                 String      @id @default(cuid())
+  ledger             Ledger      @relation(fields: [ledgerId], references: [id])
   ledgerId           String
-  group              AssetGroup @relation(fields: [groupId], references: [id])
-  groupId            String
+  group              AssetGroup? @relation(fields: [groupId], references: [id])
+  groupId            String?
   name               String
-  kind               String     // CASH | BANK | CARD | LOAN | INVEST ...
-  initialBalance     Int        @default(0)
-  includeInNetWorth  Boolean    @default(true)
+  kind               String      // CASH | BANK | CARD | LOAN | INVEST ...
+  initialBalance     Int         @default(0)
+  currentBalance     Int         @default(0)
+  includeInNetWorth  Boolean     @default(true)
   cardBillingDay     Int?
   nextBillingAmount  Int?
-  order              Int        @default(0)
+  order              Int         @default(0)
   transactions       Transaction[] @relation("AssetTransactions")
   counterTransactions Transaction[] @relation("CounterAssetTransactions")
+
+  @@index([ledgerId])
+  @@index([groupId])
 }
 
 model Category {
-  id        String    @id @default(uuid())
-  ledger    Ledger    @relation(fields: [ledgerId], references: [id])
-  ledgerId  String
-  parentId  String?
-  kind      String    // INCOME | EXPENSE
-  name      String
-  order     Int       @default(0)
+  id        String     @id @default(cuid())
+  ledger    Ledger     @relation(fields: [ledgerId], references: [id])
+  ledgerId  String 
+  parentId  String? 
+  kind      String     // INCOME | EXPENSE
+  name      String 
+  order     Int        @default(0)
   children  Category[] @relation("CategoryChildren")
   parent    Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
   splits    TransactionSplit[]
 }
 
 model Transaction {
-  id             String     @id @default(uuid())
+  id             String     @id @default(cuid())
   ledger         Ledger     @relation(fields: [ledgerId], references: [id])
   ledgerId       String
   user           User       @relation(fields: [userId], references: [id])
@@ -107,7 +111,7 @@ model Transaction {
   counterAsset   Asset?     @relation("CounterAssetTransactions", fields: [counterAssetId], references: [id])
   counterAssetId String?
   currency       String     @default("KRW")
-  fxRate         Float?     // 외화시 환율
+  fxRate         Float?
   splits         TransactionSplit[]
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
@@ -115,7 +119,7 @@ model Transaction {
 }
 
 model TransactionSplit {
-  id            String       @id @default(uuid())
+  id            String       @id @default(cuid())
   transaction   Transaction  @relation(fields: [transactionId], references: [id])
   transactionId String
   category      Category     @relation(fields: [categoryId], references: [id])
@@ -125,7 +129,7 @@ model TransactionSplit {
 }
 
 model Tag {
-  id       String  @id @default(uuid())
+  id       String  @id @default(cuid())
   ledger   Ledger  @relation(fields: [ledgerId], references: [id])
   ledgerId String
   name     String

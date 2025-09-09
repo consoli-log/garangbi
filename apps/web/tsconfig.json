@@ -14,7 +14,8 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@services/*": ["../../packages/services/*"]
+      "@services/*": ["../../packages/services/*"],
+      "@stores/*": ["./src/stores/*"]
     }
   },
   "include": ["src"]

@@ -38,6 +38,7 @@ function Home() {
 
 import LoginPage from './pages/auth/Login';
 import RegisterPage from './pages/auth/Register';
+import AssetsPage from "./pages/assets/AssetsPage";
 
 export default function App() {
   const mode = useThemeStore(s => s.mode);
@@ -55,6 +56,7 @@ export default function App() {
             <Route path="/" element={<ProtectedRoute><Home/></ProtectedRoute>} />
             <Route path="/auth/login" element={<LoginPage/>} />
             <Route path="/auth/register" element={<RegisterPage/>} />
+            <Route path="/assets" element={<AssetsPage />} />
           </Routes>
         </Container>
         <ToastContainer position="top-right" autoClose={2000} newestOnTop />
