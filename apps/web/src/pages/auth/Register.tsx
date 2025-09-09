@@ -20,7 +20,10 @@ const Meter = styled.div<{level:number}>`
 const schema = z.object({
   email: z.string().email('이메일 형식이 아닙니다.'),
   nickname: z.string().regex(/^[A-Za-z0-9가-힣]{2,10}$/, '닉네임은 2~10자, 특수문자 불가'),
-  password: z.string().min(8).max(16)
+  password: z
+    .string()
+    .min(8, '비밀번호는 8자 이상입니다.')
+    .max(16, '비밀번호는 16자 이하입니다.')
     .regex(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^\w\s]).{8,16}$/, '영문/숫자/특수문자 포함 8~16자')
 });
 

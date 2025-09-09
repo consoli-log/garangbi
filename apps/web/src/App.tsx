@@ -8,6 +8,7 @@ import { useAuthStore } from './stores/auth';
 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import './lib/zod-ko';
 
 const Global = createGlobalStyle`
   body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto}

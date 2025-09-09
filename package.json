@@ -4,12 +4,16 @@
   "packageManager": "pnpm@9.6.0",
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --parallel",
+    "dev:web": "pnpm --filter @garangbi/web dev",
+    "dev:server": "pnpm --filter @garangbi/server dev",
     "lint": "turbo run lint",
     "format": "prettier --write .",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down -v --remove-orphans",
     "compose:up": "docker-compose up --build",
     "compose:down": "docker-compose down -v"
   },
@@ -22,3 +26,4 @@
     "@prisma/client": "6.15.0"
   }
 }
+
