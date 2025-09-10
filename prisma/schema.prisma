@@ -60,6 +60,8 @@ model AssetGroup {
   type     String  // ASSET | DEBT
   order    Int     @default(0)
   assets   Asset[]
+
+  @@unique([ledgerId, name])
 }
 
 model Asset {

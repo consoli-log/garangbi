@@ -2,6 +2,24 @@ import { create } from "zustand";
 import { toast } from "react-toastify";
 import assetsApi, { Asset, AssetGroup, ReorderItem } from "@services/assets";
 
+const DEFAULT_GROUPS: { name: string; type: "ASSET" | "DEBT" }[] = [
+  { name: "현금", type: "ASSET" },
+  { name: "은행", type: "ASSET" },
+  { name: "체크카드", type: "ASSET" },
+  { name: "신용카드", type: "DEBT" },
+  { name: "대출", type: "DEBT" },
+  { name: "투자", type: "ASSET" },
+];
+
+export const DEFAULT_KINDS = [
+  { value: "CASH", label: "현금" },
+  { value: "BANK", label: "은행" },
+  { value: "CHECK_CARD", label: "체크카드" },
+  { value: "CREDIT_CARD", label: "신용카드" },
+  { value: "LOAN", label: "대출" },
+  { value: "INVESTMENT", label: "투자" },
+];
+
 interface AssetsState {
   groups: AssetGroup[];
   selectedGroupId: string | null;
@@ -9,6 +27,7 @@ interface AssetsState {
   error: string | null;
 
   fetch: (ledgerId: string) => Promise<void>;
+  ensureDefaultGroups: (ledgerId: string) => Promise<void>;
   selectGroup: (id: string | null) => void;
 
   addGroup: (input: { ledgerId: string; name: string; type?: "ASSET" | "DEBT" }) => Promise<void>;
@@ -50,6 +69,27 @@ export const useAssetsStore = create<AssetsState>((set, get) => ({
       set({ loading: false, error: e?.message ?? "자산을 불러오지 못했습니다." });
       toast.error("자산을 불러오지 못했습니다.");
     }
+  },
+
+  async ensureDefaultGroups(ledgerId) {
+    const flagKey = `defaultsEnsured:${ledgerId}`;
+    if (localStorage.getItem(flagKey) === "1") return;
+
+    const state = get();
+    const existing = new Set(state.groups.map((g) => g.name));
+
+    for (const g of DEFAULT_GROUPS) {
+      if (existing.has(g.name)) continue;
+      try {
+        await assetsApi.createGroup({ ledgerId, name: g.name, type: g.type });
+        existing.add(g.name);
+      } catch (e: any) {
+      }
+    }
+
+    localStorage.setItem(flagKey, "1");
+
+    await get().fetch(ledgerId);
   },
 
   selectGroup(id) {
