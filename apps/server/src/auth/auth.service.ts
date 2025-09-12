@@ -1,95 +1,83 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { RegisterDto } from './dto/register.dto';
+import * as bcrypt from 'bcrypt';
+import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-import * as argon2 from 'argon2';
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService, private jwt: JwtService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
-  async register(email: string, nickname: string, password: string) {
-    const exists = await this.prisma.user.findUnique({ where: { email } });
-    if (exists) throw new BadRequestException('이미 사용 중인 이메일입니다.');
-    const passwordHash = await argon2.hash(password);
-    const user = await this.prisma.user.create({
-      data: { email, nickname, passwordHash, isActive: true }
+  /**
+   * 신규 사용자 등록
+   * @param registerDto email, nickname, password
+   * @returns 생성된 사용자 정보 (비밀번호 제외)
+   */
+  async register(registerDto: RegisterDto) {
+    const { email, nickname, password } = registerDto;
+
+    // 이메일 중복 확인
+    const existingUserByEmail = await this.prisma.user.findUnique({
+      where: { email },
     });
-    return { id: user.id };
-  }
-
-  async login(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || !user.isActive) {
-      throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
+    if (existingUserByEmail) {
+      throw new ConflictException('이미 사용 중인 이메일입니다.');
     }
-    const ok = await argon2.verify(user.passwordHash, password);
-    if (!ok) throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
 
-    await this.ensureDefaultSeed(user.id);
+    // 닉네임 중복 확인
+    const existingUserByNickname = await this.prisma.user.findUnique({
+      where: { nickname },
+    });
+    if (existingUserByNickname) {
+      throw new ConflictException('이미 사용 중인 닉네임입니다.');
+    }
 
-    const accessToken = await this.jwt.signAsync({ sub: user.id, email: user.email });
-    return { accessToken, user: { id: user.id, email: user.email, nickname: user.nickname } };
+    // 비밀번호 암호화
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 사용자 생성
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        nickname,
+        password: hashedPassword,
+      },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...result } = user;
+    return result;
   }
 
-  private async ensureDefaultSeed(userId: string) {
-    const hasLedger = await this.prisma.ledger.findFirst({ where: { ownerId: userId } });
-    if (hasLedger) return;
+  /**
+   * 사용자 로그인
+   * @param loginDto email, password
+   * @returns Access Token
+   */
+  async login(loginDto: LoginDto) {
+    const { email, password } = loginDto;
 
-    await this.prisma.$transaction(async (tx) => {
-      const ledger = await tx.ledger.create({
-        data: {
-          name: '개인 가계부',
-          description: '기본 생성된 가계부',
-          currency: 'KRW',
-          startDay: 1,
-          isDefault: true,
-          ownerId: userId
-        }
-      });
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new UnauthorizedException('이메일 또는 비밀번호를 확인해주세요.');
+    }
 
-      const assetGroupCash = await tx.assetGroup.create({
-        data: { ledgerId: ledger.id, name: '현금', type: 'ASSET', order: 1 }
-      });
-      const assetGroupBank = await tx.assetGroup.create({
-        data: { ledgerId: ledger.id, name: '은행', type: 'ASSET', order: 2 }
-      });
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('이메일 또는 비밀번호를 확인해주세요.');
+    }
 
-      await tx.asset.create({
-        data: {
-          ledgerId: ledger.id,
-          groupId: assetGroupCash.id,
-          name: '현금',
-          kind: 'CASH',
-          initialBalance: 0,
-          includeInNetWorth: true,
-          order: 1
-        }
-      });
-      await tx.asset.create({
-        data: {
-          ledgerId: ledger.id,
-          groupId: assetGroupBank.id,
-          name: '주계좌',
-          kind: 'BANK',
-          initialBalance: 0,
-          includeInNetWorth: true,
-          order: 2
-        }
-      });
+    const payload = { sub: user.id, email: user.email };
+    const accessToken = this.jwtService.sign(payload);
 
-      const catFood = await tx.category.create({
-        data: { ledgerId: ledger.id, kind: 'EXPENSE', name: '식비', order: 1 }
-      });
-      await tx.category.create({
-        data: { ledgerId: ledger.id, kind: 'EXPENSE', name: '카페', parentId: catFood.id, order: 1 }
-      });
-      await tx.category.create({
-        data: { ledgerId: ledger.id, kind: 'EXPENSE', name: '교통', order: 2 }
-      });
-
-      await tx.category.create({
-        data: { ledgerId: ledger.id, kind: 'INCOME', name: '급여', order: 1 }
-      });
-    });
+    return { accessToken };
   }
 }

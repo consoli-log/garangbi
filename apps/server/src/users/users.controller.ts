@@ -1,20 +1,15 @@
-import { Controller, Get, Headers } from '@nestjs/common';
-import { UsersService } from './users.service.js';
-import { JwtService } from '@nestjs/jwt';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { UsersService } from './users.service';
+import { AuthGuard } from '@nestjs/passport';
+import { Request } from 'express';
 
 @Controller('users')
 export class UsersController {
-  constructor(private users: UsersService, private jwt: JwtService) {}
+  constructor(private readonly usersService: UsersService) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Get('me')
-  async me(@Headers('authorization') auth?: string) {
-    if (!auth?.startsWith('Bearer ')) return null;
-    const token = auth.slice(7).trim();
-    try {
-      const payload = await this.jwt.verifyAsync(token);
-      return this.users.me(payload.sub);
-    } catch {
-      return null;
-    }
+  getMe(@Req() req: Request) {
+    return req.user;
   }
 }
