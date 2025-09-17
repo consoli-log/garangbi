@@ -29,10 +29,8 @@ export function RegisterPage() {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       await authService.register(data);
-      notificationService.success(
-        '회원가입이 완료되었습니다. </br> 로그인 페이지로 이동합니다.',
-      );
-      navigate('/login');
+      notificationService.success('인증 메일이 발송되었습니다. 이메일을 확인해주세요.');
+      navigate('/auth/email-notice');
     } catch (error: any) {
     }
   };

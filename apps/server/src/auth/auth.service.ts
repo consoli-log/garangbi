@@ -2,17 +2,22 @@ import {
   ConflictException,
   Injectable,
   UnauthorizedException,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto, LoginDto } from '@garangbi/types';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { EmailService } from './email.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly emailService: EmailService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -33,14 +38,22 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+    const emailVerificationExpires = new Date(Date.now() + 3600000);
 
     const user = await this.prisma.user.create({
       data: {
         email,
         nickname,
         password: hashedPassword,
+        isActive: false,
+        emailVerificationToken,
+        emailVerificationExpires,
       },
     });
+
+    await this.emailService.sendVerificationEmail(email, emailVerificationToken);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...result } = user;
@@ -55,6 +68,10 @@ export class AuthService {
       throw new UnauthorizedException('이메일 또는 비밀번호를 확인해주세요.');
     }
 
+    if (!user.isActive) {
+      throw new UnauthorizedException('아직 이메일 인증이 완료되지 않았습니다.');
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('이메일 또는 비밀번호를 확인해주세요.');
@@ -64,5 +81,30 @@ export class AuthService {
     const accessToken = this.jwtService.sign(payload);
 
     return { accessToken };
+  }
+
+  async verifyEmail(token: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { emailVerificationToken: token },
+    });
+
+    if (!user) {
+      throw new NotFoundException('유효하지 않은 인증 토큰입니다.');
+    }
+
+    if (new Date() > user.emailVerificationExpires) {
+      throw new BadRequestException('인증 토큰이 만료되었습니다.');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isActive: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      },
+    });
+
+    return { message: '이메일 인증이 성공적으로 완료되었습니다.' };
   }
 }
