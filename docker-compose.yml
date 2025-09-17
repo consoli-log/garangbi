@@ -1,41 +1,16 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:16
+    container_name: garangbi-db
+    restart: always
+    ports:
+      - "5433:5432"
     environment:
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: garangbi
-    ports: ["5433:5432"]
     volumes:
-      - dbdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d garangbi"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
-  server:
-    build: ./apps/server
-    env_file:
-      - ./apps/server/.env
-    depends_on:
-      db:
-        condition: service_healthy
-    ports: ["3000:3000"]
-
-  web:
-    build: ./apps/web
-    depends_on:
-      - server
-
-  nginx:
-    image: nginx:1.27-alpine
-    depends_on:
-      - web
-      - server
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - garangbi-data:/var/lib/postgresql/data
 
 volumes:
-  dbdata:
+  garangbi-data:

@@ -1,150 +1,18 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+generator client {
+  provider = "prisma-client-js"
+  output   = "../apps/server/node_modules/.prisma/client"
+}
+
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  nickname     String
-  passwordHash String
-  isActive     Boolean  @default(false)
-  provider     String   @default("local")
-  createdAt    DateTime @default(now())
-  ledgersOwned Ledger[] @relation("OwnerLedgers")
-  members      LedgerMember[]
-  transactions Transaction[]
-
-  @@index([email])
-}
-
-model Ledger {
-  id            String          @id @default(cuid())
-  name          String
-  description   String?
-  currency      String          @default("KRW")
-  startDay      Int             @default(1)
-  ownerId       String
-  owner         User            @relation("OwnerLedgers", fields: [ownerId], references: [id])
-  members       LedgerMember[]
-  assetGroups   AssetGroup[]    
-  assets        Asset[]
-  categories    Category[]
-  transactions  Transaction[]
-  tags          Tag[]           
-
-  isDefault     Boolean         @default(false)
-}
-
-model LedgerMember {
-  id       String     @id @default(cuid())
-  ledger   Ledger     @relation(fields: [ledgerId], references: [id])
-  ledgerId String
-  user     User       @relation(fields: [userId], references: [id])
-  userId   String
-  role     String     @default("viewer")
-  joinedAt DateTime   @default(now())
-
-  @@unique([ledgerId, userId])
-}
-
-model AssetGroup {
-  id       String  @id @default(cuid())
-  ledger   Ledger  @relation(fields: [ledgerId], references: [id])
-  ledgerId String
-  name     String
-  type     String  // ASSET | DEBT
-  order    Int     @default(0)
-  assets   Asset[]
-
-  @@unique([ledgerId, name])
-}
-
-model Asset {
-  id                 String      @id @default(cuid())
-  ledger             Ledger      @relation(fields: [ledgerId], references: [id])
-  ledgerId           String
-  group              AssetGroup? @relation(fields: [groupId], references: [id])
-  groupId            String?
-  name               String
-  kind               String      // CASH | BANK | CARD | LOAN | INVEST ...
-  initialBalance     Int         @default(0)
-  currentBalance     Int         @default(0)
-  includeInNetWorth  Boolean     @default(true)
-  cardBillingDay     Int?
-  nextBillingAmount  Int?
-  order              Int         @default(0)
-  transactions       Transaction[] @relation("AssetTransactions")
-  counterTransactions Transaction[] @relation("CounterAssetTransactions")
-
-  @@index([ledgerId])
-  @@index([groupId])
-}
-
-model Category {
-  id        String     @id @default(cuid())
-  ledger    Ledger     @relation(fields: [ledgerId], references: [id])
-  ledgerId  String 
-  parentId  String? 
-  kind      String     // INCOME | EXPENSE
-  name      String 
-  order     Int        @default(0)
-  children  Category[] @relation("CategoryChildren")
-  parent    Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
-  splits    TransactionSplit[]
-}
-
-model Transaction {
-  id             String     @id @default(cuid())
-  ledger         Ledger     @relation(fields: [ledgerId], references: [id])
-  ledgerId       String
-  user           User       @relation(fields: [userId], references: [id])
-  userId         String
-  type           String     // INCOME | EXPENSE | TRANSFER
-  date           DateTime
-  amount         Int
-  memo           String?
-  asset          Asset?     @relation("AssetTransactions", fields: [assetId], references: [id])
-  assetId        String?
-  counterAsset   Asset?     @relation("CounterAssetTransactions", fields: [counterAssetId], references: [id])
-  counterAssetId String?
-  currency       String     @default("KRW")
-  fxRate         Float?
-  splits         TransactionSplit[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  tags           TransactionTag[]
-}
-
-model TransactionSplit {
-  id            String       @id @default(cuid())
-  transaction   Transaction  @relation(fields: [transactionId], references: [id])
-  transactionId String
-  category      Category     @relation(fields: [categoryId], references: [id])
-  categoryId    String
-  amount        Int
-  memo          String?
-}
-
-model Tag {
-  id       String  @id @default(cuid())
-  ledger   Ledger  @relation(fields: [ledgerId], references: [id])
-  ledgerId String
-  name     String
-  txs      TransactionTag[]
-
-  @@unique([ledgerId, name])
-}
-
-model TransactionTag {
-  transaction   Transaction @relation(fields: [transactionId], references: [id])
-  transactionId String
-  tag           Tag         @relation(fields: [tagId], references: [id])
-  tagId         String
-
-  @@id([transactionId, tagId])
+  id        String   @id @default(cuid())
+  email     String   @unique
+  nickname  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

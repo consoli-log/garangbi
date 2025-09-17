@@ -1,31 +1,27 @@
 {
-  "name": "garangbi",
+  "name": "garangbi-monorepo",
   "private": true,
-  "packageManager": "pnpm@9.6.0",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev --parallel",
-    "dev:web": "pnpm --filter @garangbi/web dev",
-    "dev:server": "pnpm --filter @garangbi/server dev",
-    "dev:all": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-all.ps1",
-    "dev:all:studio": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-all.ps1 -Studio",
-    "lint": "turbo run lint",
-    "format": "prettier --write .",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "db:up": "docker compose up -d db",
-    "db:down": "docker compose down -v --remove-orphans",
-    "compose:up": "docker-compose up --build",
-    "compose:down": "docker-compose down -v"
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "db:up": "docker-compose up -d",
+    "db:down": "docker-compose down",
+    "//": "--- Prisma commands should be run within the server's context ---",
+    "prisma": "pnpm --filter @garangbi/server exec prisma",
+    "db:studio": "pnpm prisma studio",
+    "dev:all": "pnpm db:up && pnpm prisma db push && turbo dev",
+    "dev:all:studio": "pnpm dev:all & pnpm db:studio"
   },
   "devDependencies": {
-    "prettier": "^3.3.3",
-    "prisma": "6.15.0",
-    "turbo": "^2.1.1"
+    "prettier": "^3.3.2",
+    "prisma": "^5.22.0",
+    "turbo": "^2.0.4"
   },
+  "packageManager": "pnpm@9.5.0",
   "dependencies": {
-    "@prisma/client": "6.15.0"
+    "@prisma/client": "5.22.0",
+    "@types/bcrypt": "^5.0.2",
+    "bcrypt": "^5.1.1"
   }
 }
-

@@ -1,17 +1,9 @@
-import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module.js';
-import helmet from 'helmet';
-import cookieParser from 'cookie-parser';
+import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
-  app.use(helmet());
-  app.use(cookieParser());
-  app.enableCors({
-    origin: true,
-    credentials: true
-  });
-  await app.listen(process.env.PORT ?? 3000);
+  const app = await NestFactory.create(AppModule);
+  app.setGlobalPrefix('api'); // /api 접두사 추가
+  await app.listen(3000);
 }
 bootstrap();
