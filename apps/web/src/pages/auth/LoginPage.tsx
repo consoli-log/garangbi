@@ -1,10 +1,10 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import styled from 'styled-components';
 import { useAuthStore } from '@stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { LoginSchema, LoginDto } from '@garangbi/types';
+import { FormContainer, Form, InputGroup, Input, Button, ErrorMessage } from '../../components/common/FormControls';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -26,7 +26,7 @@ export function LoginPage() {
   };
 
   return (
-    <Container>
+    <FormContainer>
       <h1>로그인</h1>
       <Form onSubmit={handleSubmit(onSubmit)}>
         <InputGroup>
@@ -43,52 +43,6 @@ export function LoginPage() {
         </InputGroup>
         <Button type="submit">로그인</Button>
       </Form>
-    </Container>
+    </FormContainer>
   );
 }
-
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  padding: 20px;
-  box-sizing: border-box;
-`;
-const Form = styled.form`
-  width: 100%;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-const InputGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  label { font-weight: bold; }
-`;
-const Input = styled.input`
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 1rem;
-  &:focus { border-color: #007bff; outline: none; }
-`;
-const ErrorMessage = styled.p`
-  color: #dc3545;
-  font-size: 0.875rem;
-  margin: 0;
-`;
-const Button = styled.button`
-  padding: 12px;
-  border: none;
-  border-radius: 4px;
-  background-color: #007bff;
-  color: white;
-  font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  &:hover { background-color: #0056b3; }
-`;
