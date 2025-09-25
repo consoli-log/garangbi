@@ -17,10 +17,25 @@ export const RegisterSchema = z.object({
       message: '비밀번호는 영문, 숫자, 특수문자를 포함해야 합니다.',
     }),
 });
+
 export type RegisterDto = z.infer<typeof RegisterSchema>;
 
 export const LoginSchema = z.object({
   email: z.string().email({ message: '유효한 이메일 형식이 아닙니다.' }),
   password: z.string().min(1, { message: '비밀번호를 입력해주세요.' }),
 });
+
 export type LoginDto = z.infer<typeof LoginSchema>;
+
+export const ResetPasswordSchema = z.object({
+  token: z.string().min(1, { message: '토큰이 필요합니다.' }),
+  password: z
+    .string()
+    .min(8, { message: '비밀번호는 8자 이상이어야 합니다.' })
+    .max(16, { message: '비밀번호는 16자 이하이어야 합니다.' })
+    .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_]).+$/, {
+      message: '비밀번호는 영문, 숫자, 특수문자를 포함해야 합니다.',
+    }),
+});
+
+export type ResetPasswordDto = z.infer<typeof ResetPasswordSchema>;

@@ -4,6 +4,8 @@ import { RegisterPage } from './pages/auth/RegisterPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { EmailVerificationNoticePage } from './pages/auth/EmailVerificationNoticePage';
 import { EmailVerificationPage } from './pages/auth/EmailVerificationPage';
+import { RequestPasswordResetPage } from './pages/auth/RequestPasswordResetPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -27,6 +29,8 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/auth/email-notice" element={<EmailVerificationNoticePage />}/>
         <Route path="/auth/verify-email" element={<EmailVerificationPage />} />
+        <Route path="/request-password-reset" element={<RequestPasswordResetPage />}/>
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/" element={<div>메인 페이지</div>} />
       </Routes>
     </BrowserRouter>

@@ -1,5 +1,5 @@
 import httpClient from './httpClient';
-import { LoginDto, RegisterDto, User } from '@garangbi/types';
+import { LoginDto, RegisterDto, User, ResetPasswordDto } from '@garangbi/types';
 
 export const register = async (data: RegisterDto) => {
   return httpClient.post('/auth/register', data);
@@ -18,4 +18,12 @@ export const getMe = async (): Promise<User> => {
 export const verifyEmail = async (token: string) => {
   const response = await httpClient.get(`/auth/verify-email?token=${token}`);
   return response.data;
+};
+
+export const requestPasswordReset = async (email: string) => {
+  return httpClient.post('/auth/request-password-reset', { email });
+};
+
+export const resetPassword = async (data: ResetPasswordDto) => {
+  return httpClient.post('/auth/reset-password', data);
 };
