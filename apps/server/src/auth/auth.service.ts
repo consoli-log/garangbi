@@ -6,6 +6,7 @@ import { EmailService } from './email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto, LoginDto } from '@garangbi/types';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { User } from '../../node_modules/.prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +15,16 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
   ) {}
+
+  async socialLogin(userFromProvider: User) {
+    if (!userFromProvider) {
+      throw new UnauthorizedException('소셜 로그인에 실패했습니다.');
+    }
+    const payload = { sub: userFromProvider.id, email: userFromProvider.email };
+    const accessToken = this.jwtService.sign(payload);
+
+    return { accessToken };
+  }
 
   async register(registerDto: RegisterDto) {
     const { email, nickname, password } = registerDto;

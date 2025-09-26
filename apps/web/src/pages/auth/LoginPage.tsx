@@ -18,6 +18,10 @@ export function LoginPage() {
     resolver: zodResolver(LoginSchema),
   });
 
+  const handleGoogleLogin = () => {
+    window.location.href = 'http://localhost:3000/api/auth/google';
+  };
+
   const onSubmit = async (data: LoginDto) => {
     try {
       await login(data);
@@ -44,6 +48,10 @@ export function LoginPage() {
         </InputGroup>
         <Button type="submit">로그인</Button>
       </Form>
+      <Divider>OR</Divider>
+      <GoogleButton onClick={handleGoogleLogin}>
+        Google 계정으로 로그인
+      </GoogleButton>
       <ExtraLinks>
         <Link to="/request-password-reset">비밀번호를 잊으셨나요?</Link>
         <span> | </span>
@@ -52,6 +60,48 @@ export function LoginPage() {
     </FormContainer>
   );
 }
+
+const Divider = styled.div`
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #888;
+  margin: 16px 0;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #ddd;
+  }
+
+  &:not(:empty)::before {
+    margin-right: 0.5em;
+  }
+
+  &:not(:empty)::after {
+    margin-left: 0.5em;
+  }
+`;
+
+const GoogleButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #333;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f5f5f5;
+  }
+`;
 
 const ExtraLinks = styled.div`
   margin-top: 16px;
