@@ -8,7 +8,7 @@ type AuthState = {
   isAuthenticated: boolean;
   login: (credentials: LoginDto) => Promise<void>;
   logout: () => void;
-  fetchUser: () => Promise<void>;
+  fetchUser: (token: string) => Promise<void>;
   setToken: (token: string) => void;
 };
 
@@ -24,15 +24,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (credentials: LoginDto) => {
     const { accessToken } = await authService.login(credentials);
     get().setToken(accessToken);
-    await get().fetchUser();
+    await get().fetchUser(accessToken); 
   },
 
-  fetchUser: async () => {
+  fetchUser: async (token: string) => { 
     try {
-      const user = await authService.getMe();
+      const user = await authService.getMe(token);
       set({ user });
     } catch (error) {
       get().logout();
+      throw error;
     }
   },
 

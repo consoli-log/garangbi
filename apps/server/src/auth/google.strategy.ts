@@ -27,23 +27,38 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const { id, name, emails } = profile;
     const email = emails[0].value;
 
-    let user = await this.prisma.user.findUnique({
-      where: { providerId: id },
-    });
+    try {
+      let user = await this.prisma.user.findUnique({
+        where: { providerId: id },
+      });
 
-    if (!user) {
-      // 새로운 사용자인 경우, 계정을 생성합니다.
-      user = await this.prisma.user.create({
+      if (user) {
+        return done(null, user);
+      }
+
+      user = await this.prisma.user.findUnique({ where: { email } });
+
+      if (user) {
+        const updatedUser = await this.prisma.user.update({
+          where: { email: email },
+          data: { provider: 'google', providerId: id },
+        });
+        return done(null, updatedUser);
+      }
+
+      const newUser = await this.prisma.user.create({
         data: {
           provider: 'google',
           providerId: id,
           email: email,
-          nickname: name.givenName,
-          isActive: true, // 구글이 이메일을 인증했으므로 바로 활성화
+          nickname: `${name.givenName}_${Math.floor(Math.random() * 1000)}`, // 닉네임 중복 방지
+          isActive: true,
         },
       });
-    }
+      return done(null, newUser);
 
-    done(null, user);
+    } catch (error) {
+      return done(error, false);
+    }
   }
 }

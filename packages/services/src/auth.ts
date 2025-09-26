@@ -10,8 +10,12 @@ export const login = async (data: LoginDto) => {
   return response.data;
 };
 
-export const getMe = async (): Promise<User> => {
-  const response = await httpClient.get<User>('/users/me');
+export const getMe = async (token: string): Promise<User> => {
+  const response = await httpClient.get<User>('/users/me', {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
   return response.data;
 };
 

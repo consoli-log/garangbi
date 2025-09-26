@@ -47,11 +47,11 @@ export function LoginPage() {
           )}
         </InputGroup>
         <Button type="submit">로그인</Button>
+        <Divider>OR</Divider>
+        <GoogleButton type="button" onClick={handleGoogleLogin}>
+          Google 계정으로 로그인
+        </GoogleButton>
       </Form>
-      <Divider>OR</Divider>
-      <GoogleButton onClick={handleGoogleLogin}>
-        Google 계정으로 로그인
-      </GoogleButton>
       <ExtraLinks>
         <Link to="/request-password-reset">비밀번호를 잊으셨나요?</Link>
         <span> | </span>

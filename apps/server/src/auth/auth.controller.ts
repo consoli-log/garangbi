@@ -5,10 +5,14 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
@@ -18,10 +22,17 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req, @Res() res: Response) {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+
+    if (!req.user) {
+      return res.redirect(`${frontendUrl}/login?error=auth_failed`);
+    }
+
     const { accessToken } = await this.authService.socialLogin(req.user);
-    res.redirect(`http://localhost:5173/auth/social-callback?token=${accessToken}`);
+    
+    res.redirect(`${frontendUrl}/auth/social-callback?token=${accessToken}`);
   }
-  
+
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
