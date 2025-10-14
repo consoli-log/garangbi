@@ -1,27 +1,63 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
+import sgMail, { MailDataRequired } from '@sendgrid/mail';
 
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private transporter: nodemailer.Transporter;
+  private readonly senderEmail: string;
+  private readonly senderName: string;
+  private readonly frontendUrl: string;
+  private readonly isConfigured: boolean;
 
   constructor(private readonly configService: ConfigService) {
-    this.transporter = nodemailer.createTransport({
-      service: this.configService.get<string>('EMAIL_SERVICE'),
-      auth: {
-        user: this.configService.get<string>('EMAIL_USER'),
-        pass: this.configService.get<string>('EMAIL_PASSWORD'),
-      },
-    });
+    const apiKey = this.configService.get<string>('SENDGRID_API_KEY');
+    this.senderEmail = this.configService.get<string>('EMAIL_FROM') ?? '';
+    this.senderName = this.configService.get<string>('EMAIL_FROM_NAME') ?? '가랑비';
+    this.frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+
+    if (!apiKey || !this.senderEmail) {
+      this.logger.error(
+        'SendGrid 메일 설정이 누락되었습니다. SENDGRID_API_KEY와 EMAIL_FROM을 확인해주세요.',
+      );
+      this.isConfigured = false;
+      return;
+    }
+
+    sgMail.setApiKey(apiKey);
+    this.isConfigured = true;
+  }
+
+  private ensureConfigured() {
+    if (!this.isConfigured) {
+      throw new InternalServerErrorException(
+        '메일 발송 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.',
+      );
+    }
+  }
+
+  private async sendMail(payload: MailDataRequired) {
+    this.ensureConfigured();
+
+    try {
+      await sgMail.send({
+        ...payload,
+        from: {
+          email: this.senderEmail,
+          name: this.senderName,
+        },
+      });
+    } catch (error) {
+      this.logger.error('메일 발송 실패', error);
+      throw new InternalServerErrorException('메일 발송 중 오류가 발생했습니다.');
+    }
   }
 
   async sendVerificationEmail(email: string, token: string) {
-    const verificationLink = `http://localhost:5173/auth/verify-email?token=${token}`;
+    const verificationLink = `${this.frontendUrl}/auth/verify-email?token=${token}`;
 
-    const mailOptions = {
-      from: `"가랑비" <${this.configService.get<string>('EMAIL_USER')}>`,
+    await this.sendMail({
       to: email,
       subject: '[가랑비] 회원가입을 완료하려면 이메일을 인증해주세요.',
       html: `
@@ -33,21 +69,13 @@ export class EmailService {
         </a>
         <p>이 링크는 1시간 동안 유효합니다.</p>
       `,
-    };
-
-    try {
-      const info = await this.transporter.sendMail(mailOptions);
-      this.logger.log(`인증 메일 발송 성공: ${info.messageId}`);
-    } catch (error) {
-      this.logger.error('인증 메일 발송 실패', error.stack);
-    }
+    });
   }
 
   async sendPasswordResetEmail(email: string, token: string) {
-    const resetLink = `http://localhost:5173/reset-password?token=${token}`;
+    const resetLink = `${this.frontendUrl}/reset-password?token=${token}`;
 
-    const mailOptions = {
-      from: `"가랑비" <${this.configService.get<string>('EMAIL_USER')}>`,
+    await this.sendMail({
       to: email,
       subject: '[가랑비] 비밀번호 재설정 안내',
       html: `
@@ -60,13 +88,29 @@ export class EmailService {
         <p>이 링크는 1시간 동안 유효합니다.</p>
         <p>만약 요청하지 않으셨다면 이 이메일을 무시해주세요.</p>
       `,
-    };
+    });
+  }
 
-    try {
-      const info = await this.transporter.sendMail(mailOptions);
-      this.logger.log(`비밀번호 재설정 메일 발송 성공: ${info.messageId}`);
-    } catch (error) {
-      this.logger.error('비밀번호 재설정 메일 발송 실패', error.stack);
-    }
+  async sendLedgerInvitationEmail(
+    email: string,
+    inviterName: string,
+    ledgerName: string,
+    token: string,
+  ) {
+    const acceptLink = `${this.frontendUrl}/invitations/accept?token=${token}`;
+
+    await this.sendMail({
+      to: email,
+      subject: `[가랑비] ${inviterName}님이 ${ledgerName} 가계부에 초대했습니다.`,
+      html: `
+        <h1>${inviterName}님이 ${ledgerName} 가계부에 초대했습니다.</h1>
+        <p>아래 버튼을 클릭하여 초대를 수락하고 가계부에 참여하세요.</p>
+        <a href="${acceptLink}"
+           style="display: inline-block; padding: 10px 20px; font-size: 16px; color: white; background-color: #007bff; text-decoration: none; border-radius: 5px;">
+          초대 수락하기
+        </a>
+        <p>이 링크는 7일 동안 유효합니다.</p>
+      `,
+    });
   }
 }

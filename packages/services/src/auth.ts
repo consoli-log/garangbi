@@ -31,3 +31,20 @@ export const requestPasswordReset = async (email: string) => {
 export const resetPassword = async (data: ResetPasswordDto) => {
   return httpClient.post('/auth/reset-password', data);
 };
+
+export const checkEmailAvailability = async (email: string) => {
+  const response = await httpClient.get<{ available: boolean }>('/auth/check-email', {
+    params: { email },
+  });
+  return response.data;
+};
+
+export const checkNicknameAvailability = async (nickname: string) => {
+  const response = await httpClient.get<{ available: boolean }>(
+    '/auth/check-nickname',
+    {
+      params: { nickname },
+    },
+  );
+  return response.data;
+};

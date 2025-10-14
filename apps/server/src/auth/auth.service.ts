@@ -1,12 +1,19 @@
-import { ConflictException, Injectable, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from './email.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { RegisterDto, LoginDto } from '@garangbi/types';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { User } from '../../node_modules/.prisma/client';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -26,7 +33,29 @@ export class AuthService {
     return { accessToken };
   }
 
+  async checkEmailAvailability(email: string) {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+
+    return { available: !existingUser };
+  }
+
+  async checkNicknameAvailability(nickname: string) {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { nickname },
+      select: { id: true },
+    });
+
+    return { available: !existingUser };
+  }
+
   async register(registerDto: RegisterDto) {
+    if (!registerDto.termsAgreed || !registerDto.privacyAgreed) {
+      throw new BadRequestException('약관에 동의해야 회원가입을 진행할 수 있습니다.');
+    }
+
     const { email, nickname, password } = registerDto;
 
     const existingUserByEmail = await this.prisma.user.findUnique({

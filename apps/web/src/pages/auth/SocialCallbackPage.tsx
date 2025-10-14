@@ -28,7 +28,7 @@ export function SocialCallbackPage() {
       processing.current = true;
       const loginAndRedirect = async () => {
         try {
-          setToken(token);
+          setToken(token, true);
           await fetchUser(token); 
           navigate('/');
         } catch (e) {

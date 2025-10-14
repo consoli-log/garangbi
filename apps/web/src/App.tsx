@@ -9,8 +9,18 @@ import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { SocialCallbackPage } from './pages/auth/SocialCallbackPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useEffect } from 'react';
+import { useAuthStore } from '@stores/authStore';
+import { MyPage } from './pages/mypage/MyPage';
+import { InvitationAcceptPage } from './pages/invitations/InvitationAcceptPage';
 
 function App() {
+  const initializeAuth = useAuthStore((state) => state.initialize);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   return (
     <BrowserRouter>
       <ToastContainer
@@ -33,6 +43,8 @@ function App() {
         <Route path="/request-password-reset" element={<RequestPasswordResetPage />}/>
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/auth/social-callback" element={<SocialCallbackPage />} />
+        <Route path="/invitations/accept" element={<InvitationAcceptPage />} />
+        <Route path="/mypage" element={<MyPage />} />
         <Route path="/" element={<div>메인 페이지</div>} />
       </Routes>
     </BrowserRouter>

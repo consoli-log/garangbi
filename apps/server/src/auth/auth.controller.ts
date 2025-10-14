@@ -38,6 +38,16 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
+  @Get('check-email')
+  async checkEmail(@Query('email') email: string) {
+    return this.authService.checkEmailAvailability(email);
+  }
+
+  @Get('check-nickname')
+  async checkNickname(@Query('nickname') nickname: string) {
+    return this.authService.checkNicknameAvailability(nickname);
+  }
+
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);

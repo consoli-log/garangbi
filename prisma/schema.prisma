@@ -25,4 +25,143 @@ model User {
 
   provider    String  @default("local") // 'local', 'google', 'kakao' 등
   providerId  String? @unique // 소셜 서비스에서 제공하는 고유 ID
+
+  mainLedgerId String?
+
+  mainLedger        Ledger?          @relation("UserMainLedger", fields: [mainLedgerId], references: [id])
+  ledgerMemberships LedgerMember[]
+  invitationsSent   LedgerInvitation[] @relation("InvitationSender")
+}
+
+model Ledger {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  currency      String   @default("KRW")
+  monthStartDay Int      @default(1)
+  ownerId       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  owner        User          @relation(fields: [ownerId], references: [id])
+  members      LedgerMember[]
+  invitations  LedgerInvitation[]
+  assetGroups  AssetGroup[]
+  assets       Asset[]
+  categories   Category[]
+  mainUsers    User[]        @relation("UserMainLedger")
+}
+
+model LedgerMember {
+  id        String           @id @default(cuid())
+  ledgerId  String
+  userId    String
+  role      LedgerMemberRole @default(EDITOR)
+  createdAt DateTime         @default(now())
+
+  ledger Ledger @relation(fields: [ledgerId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([ledgerId, userId])
+}
+
+model LedgerInvitation {
+  id         String            @id @default(cuid())
+  ledgerId   String
+  email      String
+  role       LedgerMemberRole  @default(VIEWER)
+  token      String            @unique
+  status     InvitationStatus  @default(PENDING)
+  expiresAt  DateTime
+  invitedById String
+  createdAt  DateTime          @default(now())
+  respondedAt DateTime?
+
+  ledger    Ledger @relation(fields: [ledgerId], references: [id])
+  invitedBy User   @relation("InvitationSender", fields: [invitedById], references: [id])
+}
+
+model AssetGroup {
+  id        String         @id @default(cuid())
+  ledgerId  String
+  name      String
+  type      AssetGroupType
+  sortOrder Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  ledger Ledger  @relation(fields: [ledgerId], references: [id])
+  assets Asset[]
+
+  @@unique([ledgerId, name])
+}
+
+model Asset {
+  id            String     @id @default(cuid())
+  ledgerId      String
+  groupId       String
+  name          String
+  type          AssetType
+  initialAmount Int        @default(0)
+  includeInNetWorth Boolean @default(true)
+  billingDay     Int?
+  upcomingPaymentAmount Int?
+  sortOrder      Int        @default(0)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  ledger Ledger     @relation(fields: [ledgerId], references: [id])
+  group  AssetGroup @relation(fields: [groupId], references: [id])
+
+  @@unique([ledgerId, name])
+}
+
+model Category {
+  id         String       @id @default(cuid())
+  ledgerId   String
+  name       String
+  type       CategoryType
+  parentId   String?
+  sortOrder  Int          @default(0)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  ledger     Ledger     @relation(fields: [ledgerId], references: [id])
+  parent     Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children   Category[] @relation("CategoryHierarchy")
+
+  @@unique([ledgerId, name, parentId])
+}
+
+enum LedgerMemberRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum AssetGroupType {
+  ASSET
+  LIABILITY
+}
+
+enum AssetType {
+  CASH
+  BANK
+  CHECK_CARD
+  CREDIT_CARD
+  LOAN
+  INVESTMENT
+  OTHER
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
 }

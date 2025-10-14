@@ -4,8 +4,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '@stores/authStore';
 import { useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { z } from 'zod';
 import { LoginSchema, LoginDto } from '@garangbi/types';
-import { FormContainer, Form, InputGroup, Input, Button, ErrorMessage } from '../../components/common/FormControls';
+import {
+  FormContainer,
+  Form,
+  InputGroup,
+  Input,
+  Button,
+  ErrorMessage,
+} from '../../components/common/FormControls';
+import { notificationService } from '@services/index';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -14,19 +23,26 @@ export function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginDto>({
-    resolver: zodResolver(LoginSchema),
+  } = useForm<LoginDto & { rememberMe: boolean }>({
+    resolver: zodResolver(LoginSchema.extend({ rememberMe: z.boolean().optional() })),
+    defaultValues: {
+      rememberMe: false,
+    },
   });
 
   const handleGoogleLogin = () => {
     window.location.href = 'http://localhost:3000/api/auth/google';
   };
 
-  const onSubmit = async (data: LoginDto) => {
+  const onSubmit = async (data: LoginDto & { rememberMe?: boolean }) => {
     try {
-      await login(data);
+      const { rememberMe, ...credentials } = data;
+      await login(credentials, Boolean(rememberMe));
       navigate('/');
     } catch (error: any) {
+      const message =
+        error?.response?.data?.message ?? '로그인에 실패했습니다. 입력 정보를 다시 확인해주세요.';
+      notificationService.error(message);
     }
   };
 
@@ -46,6 +62,12 @@ export function LoginPage() {
             <ErrorMessage>{errors.password.message}</ErrorMessage>
           )}
         </InputGroup>
+        <RememberMeRow>
+          <label>
+            <input type="checkbox" {...register('rememberMe')} />
+            로그인 상태 유지
+          </label>
+        </RememberMeRow>
         <Button type="submit">로그인</Button>
         <Divider>OR</Divider>
         <GoogleButton type="button" onClick={handleGoogleLogin}>
@@ -100,6 +122,25 @@ const GoogleButton = styled.button`
 
   &:hover {
     background-color: #f5f5f5;
+  }
+`;
+
+const RememberMeRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.95rem;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  input {
+    width: 18px;
+    height: 18px;
   }
 `;
 

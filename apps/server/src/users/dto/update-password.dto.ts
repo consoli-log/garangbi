@@ -1,9 +1,9 @@
 import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
-export class ResetPasswordDto {
+export class UpdatePasswordDto {
   @IsString()
   @MinLength(1)
-  token: string;
+  currentPassword: string;
 
   @IsString()
   @MinLength(8)
@@ -11,5 +11,5 @@ export class ResetPasswordDto {
   @Matches(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_]).+$/, {
     message: '비밀번호는 영문, 숫자, 특수문자를 포함해야 합니다.',
   })
-  password: string;
+  newPassword: string;
 }

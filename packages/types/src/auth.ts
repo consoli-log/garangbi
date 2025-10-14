@@ -16,6 +16,12 @@ export const RegisterSchema = z.object({
     .regex(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[\W_]).+$/, {
       message: '비밀번호는 영문, 숫자, 특수문자를 포함해야 합니다.',
     }),
+  termsAgreed: z.literal(true, {
+    errorMap: () => ({ message: '서비스 이용약관에 동의해야 합니다.' }),
+  }),
+  privacyAgreed: z.literal(true, {
+    errorMap: () => ({ message: '개인정보 처리방침에 동의해야 합니다.' }),
+  }),
 });
 
 export type RegisterDto = z.infer<typeof RegisterSchema>;
