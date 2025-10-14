@@ -65,6 +65,11 @@ export class LedgersController {
     return this.ledgersService.inviteMember(req.user.id, ledgerId, dto);
   }
 
+  @Get('ledgers/:id/invitations')
+  async listLedgerInvitations(@Req() req, @Param('id') ledgerId: string) {
+    return this.ledgersService.listLedgerInvitations(req.user.id, ledgerId);
+  }
+
   @Get('invitations')
   async listInvitations(@Req() req) {
     return this.ledgersService.listInvitationsForUser(req.user.email);

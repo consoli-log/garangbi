@@ -316,6 +316,33 @@ export class LedgersService {
     return invitation;
   }
 
+  async listLedgerInvitations(userId: string, ledgerId: string) {
+    await this.ensureOwnerOrEditor(userId, ledgerId);
+
+    return this.prisma.ledgerInvitation.findMany({
+      where: {
+        ledgerId,
+        status: InvitationStatus.PENDING,
+      },
+      include: {
+        ledger: {
+          select: {
+            name: true,
+          },
+        },
+        invitedBy: {
+          select: {
+            nickname: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
   async respondToInvitation(userId: string, token: string, accept: boolean) {
     const invitation = await this.prisma.ledgerInvitation.findUnique({
       where: { token },

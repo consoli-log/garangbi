@@ -1,4 +1,13 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateAssetGroupDto } from './create-asset-group.dto';
+import { AssetGroupType } from '@prisma/client';
+import { IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 
-export class UpdateAssetGroupDto extends PartialType(CreateAssetGroupDto) {}
+export class UpdateAssetGroupDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  name?: string;
+
+  @IsOptional()
+  @IsEnum(AssetGroupType)
+  type?: AssetGroupType;
+}

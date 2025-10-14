@@ -1,19 +1,35 @@
-export type LedgerMemberRole = 'OWNER' | 'EDITOR' | 'VIEWER';
+export enum LedgerMemberRole {
+  OWNER = 'OWNER',
+  EDITOR = 'EDITOR',
+  VIEWER = 'VIEWER',
+}
 
-export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+export enum InvitationStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  DECLINED = 'DECLINED',
+  EXPIRED = 'EXPIRED',
+}
 
-export type AssetGroupType = 'ASSET' | 'LIABILITY';
+export enum AssetGroupType {
+  ASSET = 'ASSET',
+  LIABILITY = 'LIABILITY',
+}
 
-export type AssetType =
-  | 'CASH'
-  | 'BANK'
-  | 'CHECK_CARD'
-  | 'CREDIT_CARD'
-  | 'LOAN'
-  | 'INVESTMENT'
-  | 'OTHER';
+export enum AssetType {
+  CASH = 'CASH',
+  BANK = 'BANK',
+  CHECK_CARD = 'CHECK_CARD',
+  CREDIT_CARD = 'CREDIT_CARD',
+  LOAN = 'LOAN',
+  INVESTMENT = 'INVESTMENT',
+  OTHER = 'OTHER',
+}
 
-export type CategoryType = 'INCOME' | 'EXPENSE';
+export enum CategoryType {
+  INCOME = 'INCOME',
+  EXPENSE = 'EXPENSE',
+}
 
 export interface LedgerSummary {
   id: string;
@@ -82,4 +98,9 @@ export interface CategoryNode {
   parentId?: string | null;
   sortOrder: number;
   children: CategoryNode[];
+}
+
+export interface ReorderItemPayload {
+  id: string;
+  sortOrder: number;
 }

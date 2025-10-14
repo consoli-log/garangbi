@@ -1,4 +1,5 @@
 import {
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
@@ -14,7 +15,8 @@ export class UpdateProfileDto {
   })
   nickname: string;
 
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  currentPassword: string;
+  currentPassword?: string;
 }

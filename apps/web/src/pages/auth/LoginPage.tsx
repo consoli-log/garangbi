@@ -2,7 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '@stores/authStore';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { z } from 'zod';
 import { LoginSchema, LoginDto } from '@garangbi/types';
@@ -18,6 +18,9 @@ import { notificationService } from '@services/index';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectPath =
+    (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname ?? '/';
   const { login } = useAuthStore();
   const {
     register,
@@ -38,7 +41,7 @@ export function LoginPage() {
     try {
       const { rememberMe, ...credentials } = data;
       await login(credentials, Boolean(rememberMe));
-      navigate('/');
+      navigate(redirectPath, { replace: true });
     } catch (error: any) {
       const message =
         error?.response?.data?.message ?? '로그인에 실패했습니다. 입력 정보를 다시 확인해주세요.';

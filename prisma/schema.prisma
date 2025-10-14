@@ -5,7 +5,6 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../apps/server/node_modules/.prisma/client"
 }
 
 model User {
@@ -31,6 +30,7 @@ model User {
   mainLedger        Ledger?          @relation("UserMainLedger", fields: [mainLedgerId], references: [id])
   ledgerMemberships LedgerMember[]
   invitationsSent   LedgerInvitation[] @relation("InvitationSender")
+  ownedLedgers      Ledger[]          @relation("LedgerOwner")
 }
 
 model Ledger {
@@ -43,7 +43,7 @@ model Ledger {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  owner        User          @relation(fields: [ownerId], references: [id])
+  owner        User          @relation("LedgerOwner", fields: [ownerId], references: [id])
   members      LedgerMember[]
   invitations  LedgerInvitation[]
   assetGroups  AssetGroup[]

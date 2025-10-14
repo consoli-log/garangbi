@@ -107,6 +107,10 @@ export class AuthService {
       throw new UnauthorizedException('아직 이메일 인증이 완료되지 않았습니다.');
     }
 
+    if (!user.password) {
+      throw new UnauthorizedException('소셜 로그인으로 가입한 계정은 비밀번호 로그인을 사용할 수 없습니다.');
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('이메일 또는 비밀번호를 확인해주세요.');

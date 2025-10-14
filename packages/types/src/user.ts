@@ -5,4 +5,6 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   mainLedgerId?: string | null;
+  provider: string;
+  hasPassword: boolean;
 }

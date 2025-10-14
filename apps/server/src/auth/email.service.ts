@@ -2,6 +2,10 @@ import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common
 import { ConfigService } from '@nestjs/config';
 import sgMail, { MailDataRequired } from '@sendgrid/mail';
 
+type MailPayload = Omit<MailDataRequired, 'from' | 'text'> & {
+  text?: string;
+};
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
@@ -37,12 +41,16 @@ export class EmailService {
     }
   }
 
-  private async sendMail(payload: MailDataRequired) {
+  private async sendMail(payload: MailPayload) {
     this.ensureConfigured();
+
+    const textContent =
+      payload.text ?? this.toPlainText(payload.html) ?? undefined;
 
     try {
       await sgMail.send({
         ...payload,
+        text: textContent ?? '',
         from: {
           email: this.senderEmail,
           name: this.senderName,
@@ -52,6 +60,17 @@ export class EmailService {
       this.logger.error('메일 발송 실패', error);
       throw new InternalServerErrorException('메일 발송 중 오류가 발생했습니다.');
     }
+  }
+
+  private toPlainText(content?: string): string | undefined {
+    if (!content) {
+      return undefined;
+    }
+
+    return content
+      .replace(/<\/?[^>]+(>|$)/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   async sendVerificationEmail(email: string, token: string) {

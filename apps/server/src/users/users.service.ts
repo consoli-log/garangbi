@@ -14,7 +14,7 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getMe(userId: string) {
-    return this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -23,8 +23,21 @@ export class UsersService {
         mainLedgerId: true,
         createdAt: true,
         updatedAt: true,
+        provider: true,
+        password: true,
       },
     });
+
+    if (!user) {
+      return null;
+    }
+
+    const { password, ...rest } = user;
+
+    return {
+      ...rest,
+      hasPassword: Boolean(password),
+    };
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
@@ -32,13 +45,19 @@ export class UsersService {
       where: { id: userId },
     });
 
-    if (!user || !user.password) {
+    if (!user) {
       throw new BadRequestException('프로필을 변경할 수 없습니다.');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.currentPassword, user.password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('현재 비밀번호가 일치하지 않습니다.');
+    if (user.password) {
+      if (!dto.currentPassword) {
+        throw new UnauthorizedException('현재 비밀번호가 일치하지 않습니다.');
+      }
+
+      const isPasswordValid = await bcrypt.compare(dto.currentPassword, user.password);
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('현재 비밀번호가 일치하지 않습니다.');
+      }
     }
 
     if (user.nickname !== dto.nickname) {
@@ -51,20 +70,14 @@ export class UsersService {
       }
     }
 
-    return this.prisma.user.update({
+    await this.prisma.user.update({
       where: { id: userId },
       data: {
         nickname: dto.nickname,
       },
-      select: {
-        id: true,
-        email: true,
-        nickname: true,
-        mainLedgerId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
     });
+
+    return this.getMe(userId);
   }
 
   async updatePassword(userId: string, dto: UpdatePasswordDto) {

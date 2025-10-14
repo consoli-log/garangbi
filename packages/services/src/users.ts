@@ -3,7 +3,7 @@ import { User } from '@garangbi/types';
 
 export const updateProfile = async (payload: {
   nickname: string;
-  currentPassword: string;
+  currentPassword?: string;
 }) => {
   const response = await httpClient.patch<User>('/users/me/profile', payload);
   return response.data;

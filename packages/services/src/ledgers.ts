@@ -3,11 +3,12 @@ import {
   Asset,
   AssetGroup,
   CategoryNode,
+  CategoryType,
   CreateLedgerPayload,
-  InvitationStatus,
   LedgerInvitationSummary,
   LedgerMemberRole,
   LedgerSummary,
+  ReorderItemPayload,
 } from '@garangbi/types';
 
 export const listLedgers = async () => {
@@ -56,6 +57,13 @@ export const sendInvitation = async (
   return response.data;
 };
 
+export const getLedgerInvitations = async (ledgerId: string) => {
+  const response = await httpClient.get<LedgerInvitationSummary[]>(
+    `/ledgers/${ledgerId}/invitations`,
+  );
+  return response.data;
+};
+
 export const getAssetGroups = async (ledgerId: string) => {
   const response = await httpClient.get<AssetGroup[]>(`/ledgers/${ledgerId}/asset-groups`);
   return response.data;
@@ -81,4 +89,54 @@ export const createAssetGroup = async (
 export const createAsset = async (ledgerId: string, payload: Partial<Asset>) => {
   const response = await httpClient.post(`/ledgers/${ledgerId}/assets`, payload);
   return response.data;
+};
+
+export const updateAssetGroup = async (groupId: string, payload: Partial<AssetGroup>) => {
+  const response = await httpClient.patch(`/asset-groups/${groupId}`, payload);
+  return response.data;
+};
+
+export const deleteAssetGroup = async (groupId: string) => {
+  return httpClient.delete(`/asset-groups/${groupId}`);
+};
+
+export const reorderAssetGroups = async (ledgerId: string, items: ReorderItemPayload[]) => {
+  return httpClient.post(`/ledgers/${ledgerId}/asset-groups/reorder`, { items });
+};
+
+export const updateAsset = async (assetId: string, payload: Partial<Asset>) => {
+  const response = await httpClient.patch(`/assets/${assetId}`, payload);
+  return response.data;
+};
+
+export const deleteAsset = async (assetId: string) => {
+  return httpClient.delete(`/assets/${assetId}`);
+};
+
+export const reorderAssets = async (ledgerId: string, items: ReorderItemPayload[]) => {
+  return httpClient.post(`/ledgers/${ledgerId}/assets/reorder`, { items });
+};
+
+export const createCategory = async (
+  ledgerId: string,
+  payload: { name: string; type: CategoryType; parentId?: string | null },
+) => {
+  const response = await httpClient.post(`/ledgers/${ledgerId}/categories`, payload);
+  return response.data;
+};
+
+export const updateCategory = async (
+  categoryId: string,
+  payload: { name?: string; parentId?: string | null; sortOrder?: number },
+) => {
+  const response = await httpClient.patch(`/categories/${categoryId}`, payload);
+  return response.data;
+};
+
+export const deleteCategory = async (categoryId: string) => {
+  return httpClient.delete(`/categories/${categoryId}`);
+};
+
+export const reorderCategories = async (ledgerId: string, items: ReorderItemPayload[]) => {
+  return httpClient.post(`/ledgers/${ledgerId}/categories/reorder`, { items });
 };
