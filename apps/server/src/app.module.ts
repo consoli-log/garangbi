@@ -6,6 +6,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { LedgersModule } from './ledgers/ledgers.module';
 import { AssetsModule } from './assets/assets.module';
 import { CategoriesModule } from './categories/categories.module';
+import { TransactionsModule } from './transactions/transactions.module';
+import { BudgetsModule } from './budgets/budgets.module';
+import { GoalsModule } from './goals/goals.module';
+import { RecurringModule } from './recurring/recurring.module';
 
 @Module({
   imports: [
@@ -19,6 +23,10 @@ import { CategoriesModule } from './categories/categories.module';
     LedgersModule,
     AssetsModule,
     CategoriesModule,
+    TransactionsModule,
+    BudgetsModule,
+    GoalsModule,
+    RecurringModule,
   ],
 })
 export class AppModule {}
