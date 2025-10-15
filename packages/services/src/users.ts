@@ -15,3 +15,8 @@ export const updatePassword = async (payload: {
 }) => {
   return httpClient.patch('/users/me/password', payload);
 };
+
+export const verifyPassword = async (payload: { password: string }) => {
+  const response = await httpClient.post('/users/me/verify-password', payload);
+  return response.data;
+};

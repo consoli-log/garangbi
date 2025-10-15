@@ -62,6 +62,19 @@ export class LedgersService {
   }
 
   async createLedger(userId: string, dto: CreateLedgerDto) {
+    const ownedLedgerCount = await this.prisma.ledgerMember.count({
+      where: {
+        userId,
+        role: LedgerMemberRole.OWNER,
+      },
+    });
+
+    if (ownedLedgerCount >= 3) {
+      throw new BadRequestException(
+        '가계부는 최대 3개까지만 만들 수 있습니다. 더 많은 가계부를 만들려면 프리미엄으로 업그레이드하세요.',
+      );
+    }
+
     const data: Prisma.LedgerCreateInput = {
       name: dto.name,
       description: dto.description ?? null,

@@ -14,6 +14,7 @@ import {
   notificationService,
   usersService,
 } from '@services/index';
+import { ReauthModal } from '../../components/mypage/ReauthModal';
 import {
   LedgerSummary,
   LedgerInvitationSummary,
@@ -78,8 +79,14 @@ type MyPageTab = 'profile' | 'ledgers' | 'invitations';
 type SentInvitationMap = Record<string, LedgerInvitationSummary[]>;
 
 export function MyPage() {
-  const { user, fetchUser } = useAuthStore();
+  const { user, fetchUser, logout } = useAuthStore();
   const requiresPassword = Boolean(user?.hasPassword);
+
+  const [isReauthCompleted, setIsReauthCompleted] = useState(!requiresPassword);
+  const [showReauthModal, setShowReauthModal] = useState(false);
+  const [hasPromptedReauth, setHasPromptedReauth] = useState(false);
+  const [reauthError, setReauthError] = useState<string | null>(null);
+  const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
 
   const [activeTab, setActiveTab] = useState<MyPageTab>('profile');
   const [ledgers, setLedgers] = useState<LedgerSummary[]>([]);
@@ -172,6 +179,34 @@ export function MyPage() {
     });
   }, [user?.nickname, requiresPassword, resetProfileForm]);
 
+  useEffect(() => {
+    if (!user) {
+      setShowReauthModal(false);
+      setHasPromptedReauth(false);
+      setIsReauthCompleted(!requiresPassword);
+      setReauthError(null);
+      return;
+    }
+
+    if (requiresPassword) {
+      if (!hasPromptedReauth) {
+        setShowReauthModal(true);
+        setIsReauthCompleted(false);
+      }
+    } else {
+      setShowReauthModal(false);
+      setHasPromptedReauth(false);
+      setIsReauthCompleted(true);
+      setReauthError(null);
+    }
+  }, [user, requiresPassword, hasPromptedReauth]);
+
+  useEffect(() => {
+    if (!showReauthModal) {
+      setReauthError(null);
+    }
+  }, [showReauthModal]);
+
   const loadInitialData = useCallback(async () => {
     try {
       setIsInitialLoading(true);
@@ -191,6 +226,29 @@ export function MyPage() {
   useEffect(() => {
     loadInitialData();
   }, [loadInitialData]);
+
+  const handleVerifyAccess = async (password: string) => {
+    try {
+      setIsVerifyingPassword(true);
+      setReauthError(null);
+      await usersService.verifyPassword({ password });
+      setIsReauthCompleted(true);
+      setShowReauthModal(false);
+      setHasPromptedReauth(true);
+      notificationService.success('보안 인증이 완료되었습니다.');
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ?? '비밀번호 확인에 실패했습니다. 다시 시도해주세요.';
+      setReauthError(message);
+    } finally {
+      setIsVerifyingPassword(false);
+    }
+  };
+
+  const handleForceLogout = useCallback(() => {
+    logout();
+    notificationService.info('다시 로그인해주세요.');
+  }, [logout]);
 
   useEffect(() => {
     if (editableLedgers.length === 0) {
@@ -442,6 +500,13 @@ export function MyPage() {
 
   return (
     <PageContainer>
+      <ReauthModal
+        open={requiresPassword && showReauthModal && !isReauthCompleted}
+        isSubmitting={isVerifyingPassword}
+        errorMessage={reauthError}
+        onVerify={handleVerifyAccess}
+        onLogout={handleForceLogout}
+      />
       <PageHeading>
         <h1>마이페이지</h1>
         <p>프로필과 가계부, 초대를 관리할 수 있습니다.</p>

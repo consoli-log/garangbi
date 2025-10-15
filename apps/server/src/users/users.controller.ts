@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
+import { VerifyPasswordDto } from './dto/verify-password.dto';
 
 @Controller('users')
 export class UsersController {
@@ -26,5 +27,11 @@ export class UsersController {
   async updatePassword(@Req() req: Request, @Body() dto: UpdatePasswordDto) {
     await this.usersService.updatePassword((req.user as any).id, dto);
     return { success: true };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('me/verify-password')
+  verifyPassword(@Req() req: Request, @Body() dto: VerifyPasswordDto) {
+    return this.usersService.verifyPassword((req.user as any).id, dto.password);
   }
 }

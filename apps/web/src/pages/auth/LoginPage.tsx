@@ -37,6 +37,10 @@ export function LoginPage() {
     window.location.href = 'http://localhost:3000/api/auth/google';
   };
 
+  const handleKakaoLogin = () => {
+    window.location.href = 'http://localhost:3000/api/auth/kakao';
+  };
+
   const onSubmit = async (data: LoginDto & { rememberMe?: boolean }) => {
     try {
       const { rememberMe, ...credentials } = data;
@@ -73,9 +77,14 @@ export function LoginPage() {
         </RememberMeRow>
         <Button type="submit">로그인</Button>
         <Divider>OR</Divider>
-        <GoogleButton type="button" onClick={handleGoogleLogin}>
-          Google 계정으로 로그인
-        </GoogleButton>
+        <SocialButtons>
+          <GoogleButton type="button" onClick={handleGoogleLogin}>
+            Google 계정으로 로그인
+          </GoogleButton>
+          <KakaoButton type="button" onClick={handleKakaoLogin}>
+            Kakao 계정으로 로그인
+          </KakaoButton>
+        </SocialButtons>
       </Form>
       <ExtraLinks>
         <Link to="/request-password-reset">비밀번호를 잊으셨나요?</Link>
@@ -109,6 +118,13 @@ const Divider = styled.div`
   }
 `;
 
+const SocialButtons = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+`;
+
 const GoogleButton = styled.button`
   display: flex;
   align-items: center;
@@ -125,6 +141,25 @@ const GoogleButton = styled.button`
 
   &:hover {
     background-color: #f5f5f5;
+  }
+`;
+
+const KakaoButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: #fee500;
+  color: #3c1e1e;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #fdd835;
   }
 `;
 

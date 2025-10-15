@@ -108,4 +108,24 @@ export class UsersService {
       },
     });
   }
+
+  async verifyPassword(userId: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        password: true,
+      },
+    });
+
+    if (!user || !user.password) {
+      throw new BadRequestException('비밀번호를 확인할 수 없습니다.');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('현재 비밀번호가 일치하지 않습니다.');
+    }
+
+    return { success: true };
+  }
 }
