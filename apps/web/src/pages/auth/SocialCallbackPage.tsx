@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@stores/authStore';
-import styled from 'styled-components';
 import { notificationService } from '@services/index';
+import { FormContainer } from '../../components/common/FormControls';
 
 export function SocialCallbackPage() {
   const [searchParams] = useSearchParams();
@@ -29,30 +29,22 @@ export function SocialCallbackPage() {
       const loginAndRedirect = async () => {
         try {
           setToken(token, true);
-          await fetchUser(token); 
+          await fetchUser(token);
           navigate('/');
         } catch (e) {
           notificationService.error('사용자 정보를 가져오는데 실패했습니다.');
           navigate('/login');
         }
       };
-      loginAndRedirect();
-    }  else {
-      // 토큰 없이 접근한 경우
+      void loginAndRedirect();
+    } else {
       navigate('/login');
     }
   }, [searchParams, navigate, setToken, fetchUser]);
 
   return (
-    <Container>
-      <p>로그인 처리 중입니다...</p>
-    </Container>
+    <FormContainer className="text-center">
+      <p className="text-[11px] text-pixel-yellow">로그인 처리 중입니다...</p>
+    </FormContainer>
   );
 }
-
-const Container = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-`;

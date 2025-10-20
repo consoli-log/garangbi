@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { authService, notificationService } from '@services/index';
-import styled from 'styled-components';
+import { FormContainer } from '../../components/common/FormControls';
 
 export function EmailVerificationPage() {
   const [searchParams] = useSearchParams();
@@ -35,17 +35,11 @@ export function EmailVerificationPage() {
   }, [searchParams, navigate, isProcessing]);
 
   return (
-    <Container>
-      <h1>이메일 인증</h1>
-      <p>{message}</p>
-    </Container>
+    <FormContainer className="gap-4 text-center">
+      <h1 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
+        이메일 인증
+      </h1>
+      <p className="max-w-md text-[11px] text-pixel-yellow">{message}</p>
+    </FormContainer>
   );
 }
-
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-`;

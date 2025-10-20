@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import {
   LedgerInvitationSummary,
-  LedgerSummary,
   LedgerMemberRole,
+  LedgerSummary,
 } from '@garangbi/types';
 import { ledgerService, notificationService } from '@services/index';
 
@@ -18,6 +17,7 @@ export function DashboardPage() {
     () => ledgers.find((ledger) => ledger.isMain) ?? ledgers[0] ?? null,
     [ledgers],
   );
+
   const otherLedgers = useMemo(
     () => ledgers.filter((ledger) => !ledger.isMain),
     [ledgers],
@@ -40,7 +40,7 @@ export function DashboardPage() {
       }
     };
 
-    load();
+    void load();
   }, []);
 
   const handleSetMain = async (ledgerId: string) => {
@@ -56,104 +56,121 @@ export function DashboardPage() {
 
   if (isLoading) {
     return (
-      <PageContainer>
-        <LoadingCard>대시보드 정보를 불러오는 중...</LoadingCard>
-      </PageContainer>
+      <div className="flex flex-col gap-6">
+        <div className="pixel-box bg-[#2a2d3f] text-center text-pixel-yellow">
+          대시보드 정보를 불러오는 중...
+        </div>
+      </div>
     );
   }
 
+  const mockCategories = ['주거', '식비', '교통', '문화', '저축'];
+
   return (
-    <PageContainer>
-      <HeaderRow>
-        <div>
-          <Title>가계부 대시보드</Title>
-          <Subtitle>주요 가계부 현황과 받은 초대를 한눈에 확인하세요.</Subtitle>
+    <div className="flex flex-col gap-6">
+      <div className="pixel-box bg-[#2a2d3f]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="pixel-heading text-pixel-yellow">Garanbi Pixel Budget</h1>
+            <p className="pixel-text">
+              8-Bit 모드로 가계부를 탐험하세요! 귀여운 도트 세계 속 재무 현황을 알려드릴게요.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/mypage')}
+            className="pixel-button bg-pixel-blue text-black hover:text-black"
+          >
+            마이페이지로 이동
+          </button>
         </div>
-        <PrimaryButton type="button" onClick={() => navigate('/mypage')}>
-          가계부 관리로 이동
-        </PrimaryButton>
-      </HeaderRow>
+      </div>
 
-      {mainLedger ? (
-        <MainLedgerCard>
-          <CardHeader>
-            <CardTitle>메인 가계부</CardTitle>
-            <MainBadge>MAIN</MainBadge>
-          </CardHeader>
-          <LedgerName>{mainLedger.name}</LedgerName>
-          <LedgerDescription>
-            {mainLedger.description || '설명 정보가 없습니다.'}
-          </LedgerDescription>
-          <LedgerMeta>
-            <span>통화: {mainLedger.currency}</span>
-            <span>정산 기준일: 매월 {mainLedger.monthStartDay}일</span>
-            <span>멤버: {mainLedger.memberCount}명</span>
-          </LedgerMeta>
-        </MainLedgerCard>
-      ) : (
-        <EmptyCard>
-          <CardTitle>메인 가계부가 없습니다.</CardTitle>
-          <p>새로운 가계부를 생성하고 메인으로 설정해보세요.</p>
-          <PrimaryButton type="button" onClick={() => navigate('/mypage')}>
-            가계부 만들기
-          </PrimaryButton>
-        </EmptyCard>
-      )}
+      <div className="grid gap-6 md:grid-cols-2">
+        <section className="pixel-box bg-[#2a2d3f]">
+          <header className="mb-4 flex items-center justify-between text-pixel-yellow">
+            <h2 className="pixel-heading">Cash Vault</h2>
+            <span className="rounded-none border-4 border-black bg-pixel-yellow px-3 py-1 text-[10px] font-bold text-black shadow-pixel-sm">
+              MAIN
+            </span>
+          </header>
+          {mainLedger ? (
+            <div className="space-y-3 text-pixel-yellow">
+              <p className="pixel-text">{mainLedger.description || '설명 정보가 없습니다.'}</p>
+              <ul className="space-y-2 text-[11px]">
+                <li>• 통화: {mainLedger.currency}</li>
+                <li>• 정산 기준일: 매월 {mainLedger.monthStartDay}일</li>
+                <li>• 파티 멤버: {mainLedger.memberCount}명</li>
+              </ul>
+            </div>
+          ) : (
+            <p className="pixel-text">메인 가계부가 없습니다. 새로운 금고를 만들 차례예요!</p>
+          )}
+        </section>
 
-      <Section>
-        <SectionHeader>
-          <SectionTitle>다른 가계부</SectionTitle>
-          <span>{otherLedgers.length}개</span>
-        </SectionHeader>
-        {otherLedgers.length === 0 ? (
-          <EmptyState>다른 가계부가 없습니다.</EmptyState>
-        ) : (
-          <LedgerGrid>
-            {otherLedgers.map((ledger) => (
-              <LedgerCard key={ledger.id}>
-                <CardHeader>
-                  <LedgerName>{ledger.name}</LedgerName>
-                  <RoleBadge>
-                    {ledger.role === LedgerMemberRole.OWNER
-                      ? '소유자'
-                      : ledger.role === LedgerMemberRole.EDITOR
-                      ? '편집'
-                      : '읽기'}
-                  </RoleBadge>
-                </CardHeader>
-                <LedgerDescription>
-                  {ledger.description || '설명 없음'}
-                </LedgerDescription>
-                <LedgerMeta>
-                  <span>통화: {ledger.currency}</span>
-                  <span>정산 기준일: 매월 {ledger.monthStartDay}일</span>
-                  <span>멤버: {ledger.memberCount}명</span>
-                </LedgerMeta>
-                {ledger.role !== LedgerMemberRole.VIEWER && (
-                  <MiniButton type="button" onClick={() => handleSetMain(ledger.id)}>
-                    메인으로 설정
-                  </MiniButton>
-                )}
-              </LedgerCard>
-            ))}
-          </LedgerGrid>
-        )}
-      </Section>
+        <section className="pixel-box bg-[#23263a]">
+          <header className="mb-4">
+            <h2 className="pixel-heading text-pixel-yellow">Player Accounts</h2>
+            <p className="pixel-text">
+              동료 가계부를 관리하고 메인 파티원을 지정하세요.
+            </p>
+          </header>
+          {otherLedgers.length === 0 ? (
+            <p className="pixel-text">추가 계정이 없습니다. 새로운 모험을 시작해보세요!</p>
+          ) : (
+            <ul className="flex flex-col gap-3 text-[11px]">
+              {otherLedgers.map((ledger) => (
+                <li key={ledger.id} className="border-4 border-black bg-[#1d1f2a] px-3 py-3 shadow-pixel-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold uppercase text-pixel-yellow">{ledger.name}</span>
+                    <span className="rounded-none border-2 border-black bg-pixel-blue px-2 py-1 text-[10px] text-black shadow-pixel-sm">
+                      {ledger.role === LedgerMemberRole.OWNER
+                        ? '소유자'
+                        : ledger.role === LedgerMemberRole.EDITOR
+                        ? '편집'
+                        : '읽기'}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[10px] text-pixel-yellow">
+                    {ledger.description || '설명 없음'}
+                  </p>
+                  {ledger.role !== LedgerMemberRole.VIEWER && (
+                    <button
+                      type="button"
+                      onClick={() => handleSetMain(ledger.id)}
+                      className="mt-3 pixel-button bg-pixel-yellow text-black hover:text-black"
+                    >
+                      메인으로 설정
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-      <Section>
-        <SectionHeader>
-          <SectionTitle>받은 초대</SectionTitle>
-          <span>{invitations.length}건</span>
-        </SectionHeader>
-        {invitations.length === 0 ? (
-          <EmptyState>받은 초대가 없습니다.</EmptyState>
-        ) : (
-          <InvitationList>
-            {invitations.map((invitation) => (
-              <InvitationItem key={invitation.id}>
-                <div>
-                  <InvitationTitle>{invitation.ledger.name}</InvitationTitle>
-                  <InvitationMeta>
+        <section className="pixel-box bg-[#23263a]">
+          <header className="mb-4 flex items-center justify-between">
+            <h2 className="pixel-heading text-pixel-yellow">Expense Log</h2>
+            <span className="text-[10px] text-pixel-yellow">
+              최근 초대 {invitations.length}건
+            </span>
+          </header>
+          {invitations.length === 0 ? (
+            <p className="pixel-text">
+              받은 초대가 없습니다. 지출 정보가 비어 있어요.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-3 text-[11px]">
+              {invitations.map((invitation) => (
+                <li
+                  key={invitation.id}
+                  className="border-4 border-black bg-[#1d1f2a] px-3 py-3 shadow-pixel-sm"
+                >
+                  <p className="font-bold text-pixel-yellow">
+                    {invitation.ledger.name}
+                  </p>
+                  <p className="mt-2 text-[10px] text-pixel-yellow">
                     {invitation.invitedBy.nickname ?? invitation.invitedBy.email} 님이{' '}
                     {invitation.role === LedgerMemberRole.VIEWER
                       ? '읽기 전용'
@@ -161,243 +178,48 @@ export function DashboardPage() {
                       ? '편집 권한'
                       : '소유자 권한'}{' '}
                     으로 초대했습니다.
-                  </InvitationMeta>
-                </div>
-                <SecondaryButton
-                  type="button"
-                  onClick={() => navigate(`/invitations/accept?token=${invitation.token}`)}
-                >
-                  응답하기
-                </SecondaryButton>
-              </InvitationItem>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/invitations/accept?token=${invitation.token}`)}
+                    className="mt-3 pixel-button bg-pixel-blue text-black hover:text-black"
+                  >
+                    초대 응답하기
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="pixel-box bg-[#2a2d3f]">
+          <header className="mb-4">
+            <h2 className="pixel-heading text-pixel-yellow">Category Codex</h2>
+            <p className="pixel-text">
+              가장 자주 사용하는 카테고리를 픽셀 도감에 모아두었어요.
+            </p>
+          </header>
+          <ul className="grid gap-3 text-[11px] md:grid-cols-2">
+            {mockCategories.map((category) => (
+              <li
+                key={category}
+                className="border-4 border-black bg-[#1d1f2a] px-3 py-3 text-center text-pixel-yellow shadow-pixel-sm"
+              >
+                {category}
+              </li>
             ))}
-          </InvitationList>
-        )}
-      </Section>
-    </PageContainer>
+          </ul>
+        </section>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <button type="button" className="pixel-button w-full bg-pixel-green text-black hover:text-black">
+          Add Income
+        </button>
+        <button type="button" className="pixel-button w-full bg-pixel-red text-white hover:text-white">
+          Add Expense
+        </button>
+      </div>
+    </div>
   );
 }
-
-const PageContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-`;
-
-const HeaderRow = styled.div`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-`;
-
-const Title = styled.h1`
-  margin: 0 0 8px;
-  font-size: 2rem;
-  color: #1f2937;
-`;
-
-const Subtitle = styled.p`
-  margin: 0;
-  color: #6b7280;
-`;
-
-const Section = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const SectionHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #4b5563;
-`;
-
-const SectionTitle = styled.h2`
-  margin: 0;
-  font-size: 1.25rem;
-  color: #1f2937;
-`;
-
-const MainLedgerCard = styled.div`
-  background: linear-gradient(135deg, #0d6efd, #66a6ff);
-  color: #ffffff;
-  padding: 32px;
-  border-radius: 20px;
-  box-shadow: 0 18px 36px rgba(13, 110, 253, 0.25);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const LoadingCard = styled.div`
-  padding: 48px;
-  text-align: center;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
-  color: #4b5563;
-`;
-
-const EmptyCard = styled.div`
-  background: #ffffff;
-  padding: 32px;
-  border-radius: 16px;
-  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const CardHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-`;
-
-const CardTitle = styled.h3`
-  margin: 0;
-  font-size: 1rem;
-  color: inherit;
-`;
-
-const MainBadge = styled.span`
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-`;
-
-const LedgerName = styled.h2`
-  margin: 0;
-  font-size: 1.5rem;
-`;
-
-const LedgerDescription = styled.p`
-  margin: 0;
-  color: inherit;
-  opacity: 0.85;
-  line-height: 1.5;
-`;
-
-const LedgerMeta = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 24px;
-  font-size: 0.95rem;
-  color: inherit;
-`;
-
-const LedgerGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-`;
-
-const LedgerCard = styled.div`
-  padding: 20px;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const RoleBadge = styled.span`
-  font-size: 0.8rem;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(13, 110, 253, 0.1);
-  color: #0d6efd;
-  font-weight: 600;
-`;
-
-const InvitationList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const InvitationItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-radius: 14px;
-  background: #ffffff;
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
-  gap: 16px;
-`;
-
-const InvitationTitle = styled.h4`
-  margin: 0;
-  font-size: 1rem;
-  color: #1f2937;
-`;
-
-const InvitationMeta = styled.p`
-  margin: 4px 0 0;
-  color: #4b5563;
-  font-size: 0.9rem;
-`;
-
-const EmptyState = styled.div`
-  padding: 24px;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #6b7280;
-  text-align: center;
-`;
-
-const PrimaryButton = styled.button`
-  padding: 12px 20px;
-  border: none;
-  border-radius: 10px;
-  background: #0d6efd;
-  color: #ffffff;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #0b5ed7;
-  }
-`;
-
-const SecondaryButton = styled.button`
-  padding: 10px 16px;
-  border: 1px solid #0d6efd;
-  border-radius: 10px;
-  background: rgba(13, 110, 253, 0.05);
-  color: #0d6efd;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background: rgba(13, 110, 253, 0.12);
-  }
-`;
-
-const MiniButton = styled.button`
-  align-self: flex-start;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: none;
-  background: #f1f3f5;
-  color: #343a40;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #e9ecef;
-  }
-`;

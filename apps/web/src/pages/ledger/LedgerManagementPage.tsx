@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,6 +14,7 @@ import {
   ReorderItemPayload,
 } from '@garangbi/types';
 import { ledgerService, notificationService } from '@services/index';
+import { cn } from '../../lib/cn';
 
 type TabKey = 'assets' | 'categories';
 
@@ -455,6 +455,25 @@ export function LedgerManagementPage() {
     }
   };
 
+  const tabButtonClass = (isActive: boolean) =>
+    cn(
+      'rounded-none border-4 border-black px-4 py-2 text-[11px] font-bold uppercase tracking-widest shadow-pixel-sm transition hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-pixel-md focus:outline-none',
+      isActive ? 'bg-pixel-purple text-white' : 'bg-[#31344c] text-pixel-yellow',
+    );
+
+  const selectClass =
+    'w-full rounded-none border-4 border-black bg-[#1d1f2a] px-4 py-3 text-[11px] uppercase tracking-wide text-pixel-yellow shadow-pixel-sm focus:border-pixel-blue focus:outline-none';
+  const primaryButtonClass =
+    'inline-flex items-center justify-center rounded-none border-4 border-black bg-pixel-blue px-5 py-2.5 text-[11px] font-bold uppercase tracking-widest text-black shadow-pixel-md transition hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-pixel-lg disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
+  const secondaryButtonClass =
+    'inline-flex items-center justify-center rounded-none border-4 border-black bg-[#31344c] px-5 py-2.5 text-[11px] font-bold uppercase tracking-widest text-pixel-yellow shadow-pixel-sm transition hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-pixel-md disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
+  const chipButtonClass =
+    'inline-flex items-center justify-center rounded-none border-4 border-black bg-[#2a2d3f] px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-pixel-yellow shadow-pixel-sm transition hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-pixel-md disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
+  const dangerChipButtonClass =
+    'inline-flex items-center justify-center rounded-none border-4 border-black bg-pixel-red px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-pixel-sm transition hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-pixel-md disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
+  const cardClass = 'pixel-box bg-[#23263a] text-[11px] text-pixel-yellow';
+  const subtleCardClass = 'pixel-box bg-[#23263a]';
+
   const renderCategoryNode = (node: CategoryNode, depth = 0) => {
     const siblingList = findCategorySiblings(node.type, node.parentId ?? null);
     const siblingIndex = siblingList.findIndex((item) => item.id === node.id);
@@ -462,64 +481,93 @@ export function LedgerManagementPage() {
     const isLast = siblingIndex === siblingList.length - 1;
 
     return (
-      <CategoryNodeItem key={node.id}>
-        <CategoryNodeHeader $depth={depth}>
-          <span>{node.name}</span>
-          <CategoryActions>
-            <MiniButton type="button" onClick={() => handleAddCategory(node.type, node.id)}>
-              하위 추가
-            </MiniButton>
-            <MiniButton type="button" onClick={() => handleRenameCategory(node)}>
-              이름 변경
-            </MiniButton>
-            <MiniButton
+      <li
+        key={node.id}
+        className="border-4 border-black bg-[#1d1f2a] p-4 text-pixel-yellow shadow-pixel-sm"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2" style={{ paddingLeft: depth * 16 }}>
+          <span className="text-[11px] font-bold uppercase text-pixel-yellow">
+            {node.name}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <button
               type="button"
+              className={chipButtonClass}
+              onClick={() => handleAddCategory(node.type, node.id)}
+            >
+              하위 추가
+            </button>
+            <button
+              type="button"
+              className={chipButtonClass}
+              onClick={() => handleRenameCategory(node)}
+            >
+              이름 변경
+            </button>
+            <button
+              type="button"
+              className={cn(chipButtonClass, 'w-9 justify-center')}
               onClick={() => handleReorderCategory(node, 'up')}
               disabled={isFirst}
             >
               ▲
-            </MiniButton>
-            <MiniButton
+            </button>
+            <button
               type="button"
+              className={cn(chipButtonClass, 'w-9 justify-center')}
               onClick={() => handleReorderCategory(node, 'down')}
               disabled={isLast}
             >
               ▼
-            </MiniButton>
-            <DangerMiniButton type="button" onClick={() => handleDeleteCategory(node)}>
+            </button>
+            <button
+              type="button"
+              className={dangerChipButtonClass}
+              onClick={() => handleDeleteCategory(node)}
+            >
               삭제
-            </DangerMiniButton>
-          </CategoryActions>
-        </CategoryNodeHeader>
+            </button>
+          </div>
+        </div>
         {node.children.length > 0 ? (
-          <CategoryChildren>{node.children.map((child) => renderCategoryNode(child, depth + 1))}</CategoryChildren>
+          <ul className="mt-3 flex flex-col gap-2 border-l-4 border-dashed border-pixel-yellow/40 pl-4">
+            {node.children.map((child) => renderCategoryNode(child, depth + 1))}
+          </ul>
         ) : null}
-      </CategoryNodeItem>
+      </li>
     );
   };
 
   const selectedLedger = ledgers.find((ledger) => ledger.id === selectedLedgerId) ?? null;
 
   return (
-    <PageContainer>
-      <PageHeader>
-        <div>
-          <Title>가계부 상세 관리</Title>
-          <Subtitle>자산과 카테고리를 구성해 가계부 구조를 정리하세요.</Subtitle>
-        </div>
-      </PageHeader>
+    <div className="flex flex-col gap-8">
+      <div className="pixel-box bg-[#23263a] text-pixel-yellow">
+        <h1 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
+          가계부 상세 관리
+        </h1>
+        <p className="mt-2 text-[11px] text-pixel-yellow">
+          자산과 카테고리를 구성해 가계부 구조를 정리하세요.
+        </p>
+      </div>
 
       {isLedgerLoading ? (
-        <EmptyState>가계부 정보를 불러오는 중입니다...</EmptyState>
+        <div className={cardClass}>가계부 정보를 불러오는 중입니다...</div>
       ) : editableLedgers.length === 0 ? (
-        <EmptyState>편집 가능한 가계부가 없습니다. 소유자에게 권한을 요청하거나 새로운 가계부를 생성하세요.</EmptyState>
+        <div className={cardClass}>
+          편집 가능한 가계부가 없습니다. 소유자에게 권한을 요청하거나 새로운 가계부를 생성하세요.
+        </div>
       ) : (
-        <>
-          <Toolbar>
-            <div>
-              <label htmlFor="ledger-select">가계부 선택</label>
-              <LedgerSelect
+        <div className="flex flex-col gap-6">
+          <div className="pixel-box bg-[#1f2230]">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div className="flex flex-col gap-2">
+                <label className="text-[11px] font-bold uppercase text-pixel-yellow" htmlFor="ledger-select">
+                가계부 선택
+              </label>
+              <select
                 id="ledger-select"
+                className={selectClass}
                 value={selectedLedgerId}
                 onChange={(event) => setSelectedLedgerId(event.target.value)}
               >
@@ -528,169 +576,237 @@ export function LedgerManagementPage() {
                     {ledger.name} ({ledger.role === LedgerMemberRole.OWNER ? '소유자' : '편집 권한'})
                   </option>
                 ))}
-              </LedgerSelect>
+              </select>
             </div>
-            <TabSwitcher>
-              <TabButton type="button" $active={activeTab === 'assets'} onClick={() => setActiveTab('assets')}>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-none border-4 border-black bg-[#31344c] p-1 md:mt-0">
+              <button type="button" className={tabButtonClass(activeTab === 'assets')} onClick={() => setActiveTab('assets')}>
                 자산 관리
-              </TabButton>
-              <TabButton type="button" $active={activeTab === 'categories'} onClick={() => setActiveTab('categories')}>
+              </button>
+              <button type="button" className={tabButtonClass(activeTab === 'categories')} onClick={() => setActiveTab('categories')}>
                 카테고리 관리
-              </TabButton>
-            </TabSwitcher>
-          </Toolbar>
+              </button>
+            </div>
+          </div>
+        </div>
 
           {activeTab === 'assets' ? (
-            <AssetSection>
-              <SectionHeaderRow>
-                <h2>자산 그룹 및 자산</h2>
-                <PrimaryButton type="button" onClick={() => handleOpenGroupModal('create')}>
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-pixel-yellow">
+                <h2 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
+                  자산 그룹 및 자산
+                </h2>
+                <button
+                  type="button"
+                  className={primaryButtonClass}
+                  onClick={() => handleOpenGroupModal('create')}
+                >
                   새 자산 그룹 추가
-                </PrimaryButton>
-              </SectionHeaderRow>
+                </button>
+              </div>
               {isAssetsLoading ? (
-                <EmptyState>자산 정보를 불러오는 중입니다...</EmptyState>
+                <div className={cardClass}>자산 정보를 불러오는 중입니다...</div>
               ) : assetGroups.length === 0 ? (
-                <EmptyState>
+                <div className={cardClass}>
                   아직 자산 그룹이 없습니다. “새 자산 그룹 추가” 버튼으로 첫 번째 그룹을 만들어보세요.
-                </EmptyState>
+                </div>
               ) : (
-                <GroupGrid>
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                   {assetGroups.map((group, index) => (
-                    <GroupCard key={group.id}>
-                      <GroupHeader>
-                        <GroupTitle>
-                          <span>{group.name}</span>
-                          <small>{assetGroupTypeLabel[group.type]}</small>
-                        </GroupTitle>
-                        <GroupActions>
-                          <MiniButton type="button" onClick={() => handleOpenGroupModal('edit', group)}>
-                            수정
-                          </MiniButton>
-                          <MiniButton type="button" onClick={() => handleReorderGroups(group.id, 'up')} disabled={index === 0}>
-                            ▲
-                          </MiniButton>
-                          <MiniButton
+                    <div key={group.id} className={subtleCardClass}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-[12px] font-bold uppercase tracking-widest text-pixel-yellow">
+                            {group.name}
+                          </h3>
+                          <p className="text-[10px] uppercase text-pixel-yellow/80">
+                            {assetGroupTypeLabel[group.type]}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
                             type="button"
+                            className={chipButtonClass}
+                            onClick={() => handleOpenGroupModal('edit', group)}
+                          >
+                            수정
+                          </button>
+                          <button
+                            type="button"
+                            className={cn(chipButtonClass, 'w-9 justify-center')}
+                            onClick={() => handleReorderGroups(group.id, 'up')}
+                            disabled={index === 0}
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            className={cn(chipButtonClass, 'w-9 justify-center')}
                             onClick={() => handleReorderGroups(group.id, 'down')}
                             disabled={index === assetGroups.length - 1}
                           >
                             ▼
-                          </MiniButton>
-                          <DangerMiniButton type="button" onClick={() => handleDeleteGroup(group)}>
+                          </button>
+                          <button
+                            type="button"
+                            className={dangerChipButtonClass}
+                            onClick={() => handleDeleteGroup(group)}
+                          >
                             삭제
-                          </DangerMiniButton>
-                        </GroupActions>
-                      </GroupHeader>
+                          </button>
+                        </div>
+                      </div>
 
-                      <AssetList>
-                        {group.assets.length === 0 ? (
-                          <AssetEmptyState>이 그룹에는 아직 자산이 없습니다.</AssetEmptyState>
-                        ) : (
-                          group.assets
-                            .slice()
-                            .sort((a, b) => a.sortOrder - b.sortOrder)
-                            .map((asset, assetIndex) => (
-                              <AssetItem key={asset.id}>
-                                <AssetInfo>
-                                  <AssetName>
-                                    {asset.name}{' '}
+                      {group.assets.length === 0 ? (
+                        <div className="mt-4 border-4 border-dashed border-pixel-yellow/50 bg-[#1d1f2a] px-4 py-6 text-center text-[11px] text-pixel-yellow">
+                          아직 자산이 없습니다. 아래 버튼으로 첫 자산을 추가하세요.
+                        </div>
+                      ) : (
+                        <div className="mt-4 flex flex-col gap-3">
+                          {group.assets.map((asset, assetIndex) => (
+                            <div
+                              key={asset.id}
+                              className="flex flex-col gap-3 border-4 border-black bg-[#1d1f2a] p-4 text-pixel-yellow shadow-pixel-sm md:flex-row md:items-center md:justify-between"
+                            >
+                              <div>
+                                <p className="text-[11px] font-bold uppercase text-pixel-yellow">
+                                  {asset.name}
+                                </p>
+                                <div className="mt-1 flex flex-wrap gap-3 text-[10px] uppercase text-pixel-yellow/80">
+                                  <span>{assetTypeLabel[asset.type]}</span>
+                                  <span>초기 금액 {asset.initialAmount.toLocaleString()}원</span>
+                                  <span>{asset.includeInNetWorth ? '순자산 포함' : '순자산 제외'}</span>
+                                  {asset.billingDay ? (
+                                    <span>결제일 매월 {asset.billingDay}일</span>
+                                  ) : null}
+                                  {asset.upcomingPaymentAmount ? (
                                     <span>
-                                      ({assetTypeLabel[asset.type]} · 초기 금액 {asset.initialAmount.toLocaleString()}원)
+                                      결제 예정 {asset.upcomingPaymentAmount.toLocaleString()}원
                                     </span>
-                                  </AssetName>
-                                  <AssetMeta>
-                                    <span>{asset.includeInNetWorth ? '순자산 포함' : '순자산 제외'}</span>
-                                    {asset.billingDay ? <span>결제일 {asset.billingDay}일</span> : null}
-                                    {asset.upcomingPaymentAmount
-                                      ? (
-                                          <span>
-                                            결제 예정 {asset.upcomingPaymentAmount.toLocaleString()}원
-                                          </span>
-                                        )
-                                      : null}
-                                  </AssetMeta>
-                                </AssetInfo>
-                                <AssetActions>
-                                  <MiniButton type="button" onClick={() => handleOpenAssetModal('edit', group, asset)}>
-                                    수정
-                                  </MiniButton>
-                                  <MiniButton
-                                    type="button"
-                                    onClick={() => handleReorderAssets(group, asset.id, 'up')}
-                                    disabled={assetIndex === 0}
-                                  >
-                                    ▲
-                                  </MiniButton>
-                                  <MiniButton
-                                    type="button"
-                                    onClick={() => handleReorderAssets(group, asset.id, 'down')}
-                                    disabled={assetIndex === group.assets.length - 1}
-                                  >
-                                    ▼
-                                  </MiniButton>
-                                  <DangerMiniButton type="button" onClick={() => handleDeleteAsset(asset)}>
-                                    삭제
-                                  </DangerMiniButton>
-                                </AssetActions>
-                              </AssetItem>
-                            ))
-                        )}
-                      </AssetList>
+                                  ) : null}
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  className={chipButtonClass}
+                                  onClick={() => handleOpenAssetModal('edit', group, asset)}
+                                >
+                                  수정
+                                </button>
+                                <button
+                                  type="button"
+                                  className={cn(chipButtonClass, 'w-9 justify-center')}
+                                  onClick={() => handleReorderAssets(group, asset.id, 'up')}
+                                  disabled={assetIndex === 0}
+                                >
+                                  ▲
+                                </button>
+                                <button
+                                  type="button"
+                                  className={cn(chipButtonClass, 'w-9 justify-center')}
+                                  onClick={() => handleReorderAssets(group, asset.id, 'down')}
+                                  disabled={assetIndex === group.assets.length - 1}
+                                >
+                                  ▼
+                                </button>
+                                <button
+                                  type="button"
+                                  className={dangerChipButtonClass}
+                                  onClick={() => handleDeleteAsset(asset)}
+                                >
+                                  삭제
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
-                      <PrimaryButton type="button" onClick={() => handleOpenAssetModal('create', group)}>
-                        자산 추가
-                      </PrimaryButton>
-                    </GroupCard>
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          type="button"
+                          className={primaryButtonClass}
+                          onClick={() => handleOpenAssetModal('create', group)}
+                        >
+                          자산 추가
+                        </button>
+                      </div>
+                    </div>
                   ))}
-                </GroupGrid>
+                </div>
               )}
-            </AssetSection>
+            </div>
           ) : (
-            <CategorySection>
-              <SectionHeaderRow>
-                <h2>카테고리 구조</h2>
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-pixel-yellow">
+                <h2 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
+                  카테고리 구조
+                </h2>
                 {selectedLedger ? (
-                  <span>
+                  <span className="text-[11px] font-bold uppercase">
                     {selectedLedger.currency} · 정산 기준일 매월 {selectedLedger.monthStartDay}일 · 참여 {selectedLedger.memberCount}명
                   </span>
                 ) : null}
-              </SectionHeaderRow>
-              <CategoryColumns>
-                <CategoryColumn>
-                  <CategoryColumnHeader>
-                    <h3>수입 카테고리</h3>
-                    <PrimaryButton type="button" onClick={() => handleAddCategory(CategoryType.INCOME)}>
+              </div>
+              <div className="grid gap-5 lg:grid-cols-2">
+                <div className={cardClass}>
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="text-[12px] font-bold uppercase tracking-widest text-pixel-yellow">
+                      수입 카테고리
+                    </h3>
+                    <button
+                      type="button"
+                      className={primaryButtonClass}
+                      onClick={() => handleAddCategory(CategoryType.INCOME)}
+                    >
                       새 수입 카테고리
-                    </PrimaryButton>
-                  </CategoryColumnHeader>
+                    </button>
+                  </div>
                   {isCategoriesLoading ? (
-                    <EmptyState>카테고리를 불러오는 중입니다...</EmptyState>
+                    <div className="border-4 border-dashed border-pixel-yellow/50 bg-[#1d1f2a] px-4 py-6 text-center text-[11px] text-pixel-yellow">
+                      카테고리를 불러오는 중입니다...
+                    </div>
                   ) : categories.income.length === 0 ? (
-                    <EmptyState>수입 카테고리가 없습니다. 첫 번째 항목을 추가해보세요.</EmptyState>
+                    <div className="border-4 border-dashed border-pixel-yellow/50 bg-[#1d1f2a] px-4 py-6 text-center text-[11px] text-pixel-yellow">
+                      수입 카테고리가 없습니다. 첫 번째 항목을 추가해보세요.
+                    </div>
                   ) : (
-                    <CategoryTree>{categories.income.map((node) => renderCategoryNode(node))}</CategoryTree>
+                    <ul className="flex flex-col gap-3">
+                      {categories.income.map((node) => renderCategoryNode(node))}
+                    </ul>
                   )}
-                </CategoryColumn>
-                <CategoryColumn>
-                  <CategoryColumnHeader>
-                    <h3>지출 카테고리</h3>
-                    <PrimaryButton type="button" onClick={() => handleAddCategory(CategoryType.EXPENSE)}>
+                </div>
+                <div className={cardClass}>
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="text-[12px] font-bold uppercase tracking-widest text-pixel-yellow">
+                      지출 카테고리
+                    </h3>
+                    <button
+                      type="button"
+                      className={primaryButtonClass}
+                      onClick={() => handleAddCategory(CategoryType.EXPENSE)}
+                    >
                       새 지출 카테고리
-                    </PrimaryButton>
-                  </CategoryColumnHeader>
+                    </button>
+                  </div>
                   {isCategoriesLoading ? (
-                    <EmptyState>카테고리를 불러오는 중입니다...</EmptyState>
+                    <div className="border-4 border-dashed border-pixel-yellow/50 bg-[#1d1f2a] px-4 py-6 text-center text-[11px] text-pixel-yellow">
+                      카테고리를 불러오는 중입니다...
+                    </div>
                   ) : categories.expense.length === 0 ? (
-                    <EmptyState>지출 카테고리가 없습니다. 첫 번째 항목을 추가해보세요.</EmptyState>
+                    <div className="border-4 border-dashed border-pixel-yellow/50 bg-[#1d1f2a] px-4 py-6 text-center text-[11px] text-pixel-yellow">
+                      지출 카테고리가 없습니다. 첫 번째 항목을 추가해보세요.
+                    </div>
                   ) : (
-                    <CategoryTree>{categories.expense.map((node) => renderCategoryNode(node))}</CategoryTree>
+                    <ul className="flex flex-col gap-3">
+                      {categories.expense.map((node) => renderCategoryNode(node))}
+                    </ul>
                   )}
-                </CategoryColumn>
-              </CategoryColumns>
-            </CategorySection>
+                </div>
+              </div>
+            </div>
           )}
-        </>
+        </div>
       )}
 
       {groupModal.isOpen ? (
@@ -712,16 +828,17 @@ export function LedgerManagementPage() {
           onSubmit={(values) => handleSubmitAsset(values, assetModal.mode, assetModal.asset)}
         />
       ) : null}
-    </PageContainer>
+    </div>
   );
 }
 
-type AssetGroupModalProps = {
-  mode: 'create' | 'edit';
-  group?: AssetGroup;
-  onClose: () => void;
-  onSubmit: (values: AssetGroupFormValues) => Promise<void>;
-};
+const modalOverlayClass = 'fixed inset-0 z-[200] flex items-center justify-center bg-[#05060c]/80 px-4';
+const modalCardClass = 'w-full max-w-lg border-4 border-black bg-[#2a2d3f] p-6 text-pixel-yellow shadow-pixel-lg';
+const modalSectionClass = 'flex flex-col gap-3';
+const modalLabelClass = 'text-[11px] font-bold uppercase text-pixel-yellow';
+const modalInputClass =
+  'w-full rounded-none border-4 border-black bg-[#1d1f2a] px-4 py-3 text-[11px] uppercase tracking-wide text-pixel-yellow shadow-pixel-sm focus:border-pixel-blue focus:outline-none';
+const modalErrorClass = 'text-[10px] font-bold uppercase text-pixel-red';
 
 function AssetGroupModal({ mode, group, onClose, onSubmit }: AssetGroupModalProps) {
   const {
@@ -741,50 +858,41 @@ function AssetGroupModal({ mode, group, onClose, onSubmit }: AssetGroupModalProp
   };
 
   return (
-    <ModalOverlay>
-      <ModalCard>
-        <ModalHeader>
-          <h3>{mode === 'create' ? '새 자산 그룹' : '자산 그룹 수정'}</h3>
-        </ModalHeader>
-        <ModalBody as="form" onSubmit={handleSubmit(submitHandler)}>
-          <ModalFormRow>
-            <label>이름</label>
-            <TextInput type="text" {...register('name')} />
-            {errors.name ? <ErrorText>{errors.name.message}</ErrorText> : null}
-          </ModalFormRow>
-          <ModalFormRow>
-            <label>유형</label>
-            <Select {...register('type')}>
+    <div className={modalOverlayClass}>
+      <div className={modalCardClass}>
+        <h3 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
+          {mode === 'create' ? '새 자산 그룹' : '자산 그룹 수정'}
+        </h3>
+        <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit(submitHandler)}>
+          <div className={modalSectionClass}>
+            <label className={modalLabelClass}>이름</label>
+            <input className={modalInputClass} type="text" {...register('name')} />
+            {errors.name ? <p className={modalErrorClass}>{errors.name.message}</p> : null}
+          </div>
+          <div className={modalSectionClass}>
+            <label className={modalLabelClass}>유형</label>
+            <select className={modalInputClass} {...register('type')}>
               {Object.values(AssetGroupType).map((type) => (
                 <option key={type} value={type}>
                   {assetGroupTypeLabel[type]}
                 </option>
               ))}
-            </Select>
-            {errors.type ? <ErrorText>{errors.type.message}</ErrorText> : null}
-          </ModalFormRow>
-          <ModalActions>
-            <MiniButton type="button" onClick={onClose}>
+            </select>
+            {errors.type ? <p className={modalErrorClass}>{errors.type.message}</p> : null}
+          </div>
+          <div className="flex justify-end gap-3">
+            <button type="button" className={secondaryButtonClass} onClick={onClose}>
               취소
-            </MiniButton>
-            <PrimaryButton type="submit" disabled={isSubmitting}>
+            </button>
+            <button type="submit" className={primaryButtonClass} disabled={isSubmitting}>
               {isSubmitting ? '저장 중...' : '저장'}
-            </PrimaryButton>
-          </ModalActions>
-        </ModalBody>
-      </ModalCard>
-    </ModalOverlay>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
-
-type AssetModalProps = {
-  mode: 'create' | 'edit';
-  asset?: Asset;
-  selectedGroupId: string;
-  groups: AssetGroup[];
-  onClose: () => void;
-  onSubmit: (values: AssetFormValues) => Promise<void>;
-};
 
 function AssetModal({ mode, asset, selectedGroupId, groups, onClose, onSubmit }: AssetModalProps) {
   const {
@@ -812,493 +920,97 @@ function AssetModal({ mode, asset, selectedGroupId, groups, onClose, onSubmit }:
   };
 
   return (
-    <ModalOverlay>
-      <ModalCard>
-        <ModalHeader>
-          <h3>{mode === 'create' ? '새 자산 추가' : '자산 수정'}</h3>
-        </ModalHeader>
-        <ModalBody as="form" onSubmit={handleSubmit(submitHandler)}>
-          <ModalFormRow>
-            <label>이름</label>
-            <TextInput type="text" {...register('name')} />
-            {errors.name ? <ErrorText>{errors.name.message}</ErrorText> : null}
-          </ModalFormRow>
-          <ModalFormRow>
-            <label>그룹</label>
-            <Select {...register('groupId')}>
+    <div className={modalOverlayClass}>
+      <div className={modalCardClass}>
+        <h3 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
+          {mode === 'create' ? '새 자산 추가' : '자산 수정'}
+        </h3>
+        <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit(submitHandler)}>
+          <div className={modalSectionClass}>
+            <label className={modalLabelClass}>이름</label>
+            <input className={modalInputClass} type="text" {...register('name')} />
+            {errors.name ? <p className={modalErrorClass}>{errors.name.message}</p> : null}
+          </div>
+          <div className={modalSectionClass}>
+            <label className={modalLabelClass}>그룹</label>
+            <select className={modalInputClass} {...register('groupId')}>
               {groups.map((group) => (
                 <option key={group.id} value={group.id}>
                   {group.name}
                 </option>
               ))}
-            </Select>
-            {errors.groupId ? <ErrorText>{errors.groupId.message}</ErrorText> : null}
-          </ModalFormRow>
-          <ModalFormRow>
-            <label>유형</label>
-            <Select {...register('type')}>
+            </select>
+            {errors.groupId ? <p className={modalErrorClass}>{errors.groupId.message}</p> : null}
+          </div>
+          <div className={modalSectionClass}>
+            <label className={modalLabelClass}>유형</label>
+            <select className={modalInputClass} {...register('type')}>
               {Object.values(AssetType).map((type) => (
                 <option key={type} value={type}>
                   {assetTypeLabel[type]}
                 </option>
               ))}
-            </Select>
-            {errors.type ? <ErrorText>{errors.type.message}</ErrorText> : null}
-          </ModalFormRow>
-          <ModalFormRow>
-            <label>초기 금액</label>
-            <TextInput type="number" {...register('initialAmount', { valueAsNumber: true })} />
-            {errors.initialAmount ? <ErrorText>{errors.initialAmount.message}</ErrorText> : null}
-          </ModalFormRow>
-          <ModalFormRow>
-            <label>
-              <input type="checkbox" {...register('includeInNetWorth')} />
-              순자산에 포함
-            </label>
-          </ModalFormRow>
-          <ModalFormRow>
-            <label>결제일 (신용카드)</label>
-            <TextInput type="number" {...register('billingDay', { valueAsNumber: true })} disabled={selectedType !== AssetType.CREDIT_CARD} />
-            {errors.billingDay ? <ErrorText>{errors.billingDay.message as string}</ErrorText> : null}
-          </ModalFormRow>
-          <ModalFormRow>
-            <label>결제 예정 금액</label>
-            <TextInput type="number" {...register('upcomingPaymentAmount', { valueAsNumber: true })} />
-            {errors.upcomingPaymentAmount ? (
-              <ErrorText>{errors.upcomingPaymentAmount.message as string}</ErrorText>
-            ) : null}
-          </ModalFormRow>
-
-          <ModalActions>
-            <MiniButton type="button" onClick={onClose}>
+            </select>
+            {errors.type ? <p className={modalErrorClass}>{errors.type.message}</p> : null}
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className={modalSectionClass}>
+              <label className={modalLabelClass}>초기 금액</label>
+              <input
+                className={modalInputClass}
+                type="number"
+                {...register('initialAmount', { valueAsNumber: true })}
+              />
+              {errors.initialAmount ? (
+                <p className={modalErrorClass}>{errors.initialAmount.message}</p>
+              ) : null}
+            </div>
+            <div className={modalSectionClass}>
+              <label className={modalLabelClass}>결제 예정 금액</label>
+              <input
+                className={modalInputClass}
+                type="number"
+                {...register('upcomingPaymentAmount', { valueAsNumber: true })}
+              />
+              {errors.upcomingPaymentAmount ? (
+                <p className={modalErrorClass}>{errors.upcomingPaymentAmount.message as string}</p>
+              ) : null}
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className={modalSectionClass}>
+              <label className={modalLabelClass}>결제일 (신용카드)</label>
+              <input
+                className={modalInputClass}
+                type="number"
+                {...register('billingDay', { valueAsNumber: true })}
+                disabled={selectedType !== AssetType.CREDIT_CARD}
+              />
+              {errors.billingDay ? (
+                <p className={modalErrorClass}>{errors.billingDay.message as string}</p>
+              ) : null}
+            </div>
+            <div className="mt-6 flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="h-4 w-4 border-4 border-black bg-[#1d1f2a] text-pixel-yellow focus:outline-none focus:ring-0"
+                {...register('includeInNetWorth')}
+              />
+              <span className="text-[11px] font-bold uppercase text-pixel-yellow">
+                순자산에 포함
+              </span>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button type="button" className={secondaryButtonClass} onClick={onClose}>
               취소
-            </MiniButton>
-            <PrimaryButton type="submit" disabled={isSubmitting}>
+            </button>
+            <button type="submit" className={primaryButtonClass} disabled={isSubmitting}>
               {isSubmitting ? '저장 중...' : '저장'}
-            </PrimaryButton>
-          </ModalActions>
-        </ModalBody>
-      </ModalCard>
-    </ModalOverlay>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
-
-const PageContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-`;
-
-const PageHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-`;
-
-const Title = styled.h1`
-  margin: 0 0 8px;
-  font-size: 2rem;
-  color: #1f2937;
-`;
-
-const Subtitle = styled.p`
-  margin: 0;
-  color: #6b7280;
-`;
-
-const Toolbar = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-
-  label {
-    display: block;
-    margin-bottom: 6px;
-    color: #4b5563;
-    font-weight: 600;
-  }
-`;
-
-const LedgerSelect = styled.select`
-  min-width: 240px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  font-size: 1rem;
-
-  &:focus {
-    border-color: #0d6efd;
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
-  }
-`;
-
-const TabSwitcher = styled.div`
-  display: inline-flex;
-  background: #e7f1ff;
-  border-radius: 999px;
-  padding: 4px;
-  gap: 4px;
-`;
-
-const TabButton = styled.button<{ $active: boolean }>`
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: none;
-  background: ${({ $active }) => ($active ? '#0d6efd' : 'transparent')};
-  color: ${({ $active }) => ($active ? '#ffffff' : '#0d6efd')};
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background: ${({ $active }) =>
-      $active ? '#0b5ed7' : 'rgba(13, 110, 253, 0.12)'};
-  }
-`;
-
-const SectionHeaderRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-
-  h2 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: #1f2937;
-  }
-
-  span {
-    color: #6b7280;
-  }
-`;
-
-const AssetSection = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-`;
-
-const GroupGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
-`;
-
-const GroupCard = styled.div`
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const GroupHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-`;
-
-const GroupTitle = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  span {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #111827;
-  }
-  small {
-    color: #6b7280;
-  }
-`;
-
-const GroupActions = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-const AssetList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const AssetItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 12px;
-  background: #f8fafc;
-`;
-
-const AssetInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-`;
-
-const AssetName = styled.span`
-  font-weight: 600;
-  color: #111827;
-
-  span {
-    font-weight: 400;
-    color: #6b7280;
-  }
-`;
-
-const AssetMeta = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: 0.9rem;
-  color: #6b7280;
-`;
-
-const AssetActions = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-const AssetEmptyState = styled.div`
-  padding: 16px;
-  border-radius: 12px;
-  background: #f1f5f9;
-  color: #64748b;
-  text-align: center;
-`;
-
-const CategorySection = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-`;
-
-const CategoryColumns = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 20px;
-`;
-
-const CategoryColumn = styled.div`
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const CategoryColumnHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-
-  h3 {
-    margin: 0;
-    color: #1f2937;
-  }
-`;
-
-const CategoryTree = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const CategoryNodeItem = styled.li`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const CategoryNodeHeader = styled.div<{ $depth: number }>`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 12px;
-  background: ${({ $depth }) => ($depth === 0 ? '#edf2ff' : '#f8fafc')};
-  margin-left: ${({ $depth }) => $depth * 16}px;
-
-  span {
-    font-weight: 600;
-    color: #1f2937;
-  }
-`;
-
-const CategoryActions = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-const CategoryChildren = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const EmptyState = styled.div`
-  padding: 24px;
-  border-radius: 16px;
-  background: #ffffff;
-  text-align: center;
-  color: #6b7280;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-`;
-
-const PrimaryButton = styled.button`
-  padding: 10px 18px;
-  border-radius: 10px;
-  border: none;
-  background: #0d6efd;
-  color: #ffffff;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background: #0b5ed7;
-  }
-
-  &:disabled {
-    background: #93c5fd;
-    cursor: not-allowed;
-  }
-`;
-
-const MiniButton = styled.button`
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: none;
-  background: #f1f5f9;
-  color: #1f2937;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background: #e2e8f0;
-  }
-
-  &:disabled {
-    background: #e9ecef;
-    cursor: not-allowed;
-  }
-`;
-
-const DangerMiniButton = styled(MiniButton)`
-  background: #ffe3e3;
-  color: #c92a2a;
-
-  &:hover {
-    background: #ffc9c9;
-  }
-`;
-
-const ModalOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 24px;
-  z-index: 200;
-`;
-
-const ModalCard = styled.div`
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 24px;
-  width: min(480px, 100%);
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const ModalHeader = styled.div`
-  h3 {
-    margin: 0;
-    font-size: 1.4rem;
-    color: #1f2937;
-  }
-`;
-
-const ModalBody = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const ModalFormRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  label {
-    font-weight: 600;
-    color: #374151;
-  }
-
-  input[type='checkbox'] {
-    width: auto;
-  }
-`;
-
-const ModalActions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-`;
-
-const TextInput = styled.input`
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  font-size: 1rem;
-
-  &:focus {
-    border-color: #0d6efd;
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
-  }
-`;
-
-const Select = styled.select`
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  font-size: 1rem;
-
-  &:focus {
-    border-color: #0d6efd;
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
-  }
-`;
-
-const ErrorText = styled.span`
-  color: #c92a2a;
-  font-size: 0.85rem;
-`;

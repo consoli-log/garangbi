@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Press Start 2P', 'VT323', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  background-color: #1d1f2a;
+  color: #f9c74f;
+}
+
+#root {
+  min-height: 100%;
+}
+
+@layer components {
+  .pixel-box {
+    @apply rounded-none border-4 border-pixel-yellow bg-pixel-dark p-4 text-pixel-yellow shadow-pixel-md;
+  }
+
+  .pixel-box-alt {
+    @apply rounded-none border-4 border-pixel-blue bg-[#2a2d3f] p-4 text-white shadow-pixel-md;
+  }
+
+  .pixel-heading {
+    @apply text-base font-bold uppercase tracking-widest text-pixel-yellow;
+  }
+
+  .pixel-text {
+    @apply text-[11px] leading-relaxed text-pixel-yellow;
+  }
+
+  .pixel-button {
+    @apply inline-flex items-center justify-center rounded-none border-4 border-black bg-pixel-green px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-black shadow-pixel-lg transition-transform duration-150 ease-in-out;
+    box-shadow: 6px 6px 0 0 rgba(0, 0, 0, 0.6);
+  }
+
+  .pixel-button:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0 0 rgba(0, 0, 0, 0.7);
+  }
+
+  .pixel-button:active {
+    transform: translate(0, 0);
+    box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.7);
+  }
+}

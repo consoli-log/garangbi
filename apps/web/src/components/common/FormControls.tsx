@@ -1,59 +1,88 @@
-import styled from 'styled-components';
+import type { ComponentPropsWithoutRef, PropsWithChildren } from 'react';
+import { cn } from '../../lib/cn';
 
-export const FormContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  padding: 20px;
-  box-sizing: border-box;
-`;
+export function FormContainer({
+  className,
+  ...props
+}: ComponentPropsWithoutRef<'div'>) {
+  return (
+    <div
+      className={cn(
+        'flex min-h-screen flex-col items-center justify-center px-6 py-8',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
 
-export const Form = styled.form`
-  width: 100%;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
+export function Form({
+  className,
+  ...props
+}: ComponentPropsWithoutRef<'form'>) {
+  return (
+    <form
+      className={cn(
+        'pixel-box flex w-full max-w-xl flex-col gap-5 bg-[#2a2d3f] text-pixel-yellow',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
 
-export const InputGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  label {
-    font-weight: bold;
-  }
-`;
+export function InputGroup({
+  className,
+  children,
+  ...props
+}: PropsWithChildren<ComponentPropsWithoutRef<'div'>>) {
+  return (
+    <div className={cn('flex flex-col gap-2', className)} {...props}>
+      {children}
+    </div>
+  );
+}
 
-export const Input = styled.input`
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 1rem;
-  &:focus {
-    border-color: #007bff;
-    outline: none;
-  }
-`;
+export function Input({
+  className,
+  ...props
+}: ComponentPropsWithoutRef<'input'>) {
+  const ariaInvalid = props['aria-invalid'];
+  const isInvalid = ariaInvalid === true || ariaInvalid === 'true';
 
-export const Button = styled.button`
-  padding: 12px;
-  border: none;
-  border-radius: 4px;
-  background-color: #007bff;
-  color: white;
-  font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  &:hover {
-    background-color: #0056b3;
-  }
-`;
+  return (
+    <input
+      className={cn(
+        'w-full rounded-none border-4 border-black bg-[#1d1f2a] px-4 py-3 text-[11px] uppercase tracking-wide text-pixel-yellow shadow-pixel-md focus:border-pixel-blue focus:outline-none focus:ring-0',
+        isInvalid &&
+          'border-pixel-red text-pixel-red placeholder:text-pixel-red/70 focus:border-pixel-red focus:outline-none',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
 
-export const ErrorMessage = styled.p`
-  color: #dc3545;
-  font-size: 0.875rem;
-  margin: 0;
-`;
+export function Button({
+  className,
+  ...props
+}: ComponentPropsWithoutRef<'button'>) {
+  return (
+    <button
+      className={cn(
+        'pixel-button disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-500 disabled:text-gray-300 disabled:shadow-none',
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function ErrorMessage({
+  className,
+  ...props
+}: ComponentPropsWithoutRef<'p'>) {
+  return (
+    <p className={cn('text-[11px] font-bold uppercase text-pixel-red', className)} {...props} />
+  );
+}
