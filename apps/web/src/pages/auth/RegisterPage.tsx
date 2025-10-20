@@ -233,7 +233,11 @@ export function RegisterPage() {
           <label className="text-[11px] font-bold uppercase text-pixel-yellow">
             비밀번호
           </label>
-          <Input type="password" aria-invalid={Boolean(errors.password)} {...formRegister('password')} />
+          <Input
+            type="password"
+            aria-invalid={Boolean(errors.password)}
+            {...formRegister('password')}
+          />
           {errors.password && (
             <ErrorMessage>{errors.password.message}</ErrorMessage>
           )}
