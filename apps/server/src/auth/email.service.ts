@@ -29,7 +29,7 @@ export class EmailService {
       return;
     }
 
-    sgMail.setApiKey(apiKey);
+    // sgMail.setApiKey(apiKey);
     this.isConfigured = true;
   }
 

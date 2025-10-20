@@ -5,8 +5,15 @@ import { z } from 'zod';
 import { authService, notificationService } from '@services/index';
 import { useNavigate } from 'react-router-dom';
 import { RegisterSchema } from '@garangbi/types';
-import { FormContainer, Form, InputGroup, Input, Button, ErrorMessage } from '../../components/common/FormControls';
-import styled from 'styled-components';
+import {
+  FormContainer,
+  Form,
+  InputGroup,
+  Input,
+  Button,
+  ErrorMessage,
+} from '../../components/common/FormControls';
+import { cn } from '../../lib/cn';
 
 const registerPageSchema = RegisterSchema.extend({
   confirmPassword: z.string(),
@@ -18,8 +25,22 @@ const registerPageSchema = RegisterSchema.extend({
 type RegisterFormData = z.infer<typeof registerPageSchema>;
 
 type AvailabilityStatus = 'idle' | 'checking' | 'available' | 'unavailable' | 'error';
+const STATUS_CLASS_MAP: Record<AvailabilityStatus, string> = {
+  idle: 'text-transparent',
+  checking: 'text-pixel-blue',
+  available: 'text-pixel-green',
+  unavailable: 'text-pixel-red',
+  error: 'text-pixel-red',
+};
 
-const getPasswordStrength = (password: string) => {
+type PasswordStrength = 'weak' | 'medium' | 'strong';
+const STRENGTH_CLASS_MAP: Record<PasswordStrength, string> = {
+  weak: 'text-pixel-red',
+  medium: 'text-pixel-yellow',
+  strong: 'text-pixel-green',
+};
+
+const getPasswordStrength = (password: string): PasswordStrength | null => {
   if (!password) {
     return null;
   }
@@ -146,25 +167,33 @@ export function RegisterPage() {
 
   return (
     <FormContainer>
-      <h1>회원가입</h1>
+      <h1 className="mb-6 text-base font-bold uppercase tracking-widest text-pixel-yellow">
+        회원가입
+      </h1>
       <Form onSubmit={handleSubmit(onSubmit)}>
         <InputGroup>
-          <label>이메일</label>
+          <label className="text-[11px] font-bold uppercase text-pixel-yellow">
+            이메일
+          </label>
           <Input
             {...formRegister('email', {
               onBlur: (event) => checkEmailAvailability(event.target.value.trim()),
             })}
           />
           {errors.email && <ErrorMessage>{errors.email.message}</ErrorMessage>}
-          <AvailabilityHint status={emailStatus}>
+          <p
+            className={cn('min-h-[1.25rem] text-[10px] font-bold uppercase transition', STATUS_CLASS_MAP[emailStatus])}
+          >
             {emailStatus === 'available' && '사용 가능한 이메일입니다.'}
             {emailStatus === 'unavailable' && '이미 사용 중인 이메일입니다.'}
             {emailStatus === 'checking' && '이메일 중복 여부를 확인하고 있습니다...'}
             {emailStatus === 'error' && '이메일 중복 확인에 실패했습니다.'}
-          </AvailabilityHint>
+          </p>
         </InputGroup>
         <InputGroup>
-          <label>닉네임</label>
+          <label className="text-[11px] font-bold uppercase text-pixel-yellow">
+            닉네임
+          </label>
           <Input
             {...formRegister('nickname', {
               onBlur: (event) => checkNicknameAvailability(event.target.value.trim()),
@@ -173,102 +202,68 @@ export function RegisterPage() {
           {errors.nickname && (
             <ErrorMessage>{errors.nickname.message}</ErrorMessage>
           )}
-          <AvailabilityHint status={nicknameStatus}>
+          <p
+            className={cn('min-h-[1.25rem] text-[10px] font-bold uppercase transition', STATUS_CLASS_MAP[nicknameStatus])}
+          >
             {nicknameStatus === 'available' && '사용 가능한 닉네임입니다.'}
             {nicknameStatus === 'unavailable' && '이미 사용 중인 닉네임입니다.'}
             {nicknameStatus === 'checking' && '닉네임 중복 여부를 확인하고 있습니다...'}
             {nicknameStatus === 'error' && '닉네임 중복 확인에 실패했습니다.'}
-          </AvailabilityHint>
+          </p>
         </InputGroup>
         <InputGroup>
-          <label>비밀번호</label>
+          <label className="text-[11px] font-bold uppercase text-pixel-yellow">
+            비밀번호
+          </label>
           <Input type="password" {...formRegister('password')} />
           {errors.password && (
             <ErrorMessage>{errors.password.message}</ErrorMessage>
           )}
           {passwordStrength && (
-            <PasswordStrength $strength={passwordStrength}>
+            <p className={cn('text-[10px] font-bold uppercase', passwordStrength ? STRENGTH_CLASS_MAP[passwordStrength] : undefined)}>
               {passwordStrength === 'weak' && '안전도: 약함'}
               {passwordStrength === 'medium' && '안전도: 보통'}
               {passwordStrength === 'strong' && '안전도: 강함'}
-            </PasswordStrength>
+            </p>
           )}
         </InputGroup>
         <InputGroup>
-          <label>비밀번호 확인</label>
+          <label className="text-[11px] font-bold uppercase text-pixel-yellow">
+            비밀번호 확인
+          </label>
           <Input type="password" {...formRegister('confirmPassword')} />
           {errors.confirmPassword && (
             <ErrorMessage>{errors.confirmPassword.message}</ErrorMessage>
           )}
         </InputGroup>
-        <CheckboxGroup>
-          <CheckboxLabel>
-            <input type="checkbox" {...formRegister('termsAgreed')} />
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 text-[11px] font-bold uppercase text-pixel-yellow">
+            <input
+              type="checkbox"
+              className="h-4 w-4 border-4 border-black bg-[#1d1f2a] text-pixel-yellow focus:outline-none focus:ring-0"
+              {...formRegister('termsAgreed')}
+            />
             <span>서비스 이용약관에 동의합니다.</span>
-          </CheckboxLabel>
+          </label>
           {errors.termsAgreed && (
             <ErrorMessage>{errors.termsAgreed.message}</ErrorMessage>
           )}
-        </CheckboxGroup>
-        <CheckboxGroup>
-          <CheckboxLabel>
-            <input type="checkbox" {...formRegister('privacyAgreed')} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 text-[11px] font-bold uppercase text-pixel-yellow">
+            <input
+              type="checkbox"
+              className="h-4 w-4 border-4 border-black bg-[#1d1f2a] text-pixel-yellow focus:outline-none focus:ring-0"
+              {...formRegister('privacyAgreed')}
+            />
             <span>개인정보 처리방침에 동의합니다.</span>
-          </CheckboxLabel>
+          </label>
           {errors.privacyAgreed && (
             <ErrorMessage>{errors.privacyAgreed.message}</ErrorMessage>
           )}
-        </CheckboxGroup>
+        </div>
         <Button type="submit">가입하기</Button>
       </Form>
     </FormContainer>
   );
 }
-
-const AvailabilityHint = styled.p<{ status: AvailabilityStatus }>`
-  font-size: 0.875rem;
-  margin: 0;
-  color: ${({ status }) => {
-    switch (status) {
-      case 'available':
-        return '#198754';
-      case 'unavailable':
-      case 'error':
-        return '#dc3545';
-      case 'checking':
-        return '#0d6efd';
-      default:
-        return 'transparent';
-    }
-  }};
-  height: 1.25rem;
-`;
-
-const PasswordStrength = styled.p<{ $strength: 'weak' | 'medium' | 'strong' }>`
-  font-size: 0.875rem;
-  margin: 0;
-  color: ${({ $strength }) => {
-    if ($strength === 'strong') return '#198754';
-    if ($strength === 'medium') return '#ffc107';
-    return '#dc3545';
-  }};
-`;
-
-const CheckboxGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const CheckboxLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.95rem;
-  cursor: pointer;
-
-  input {
-    width: 18px;
-    height: 18px;
-  }
-`;

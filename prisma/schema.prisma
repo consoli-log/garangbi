@@ -15,27 +15,24 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  isActive                  Boolean  @default(false)
-  emailVerificationToken    String?  @unique
-  emailVerificationExpires  DateTime?
+  isActive                 Boolean   @default(false)
+  emailVerificationToken   String?   @unique
+  emailVerificationExpires DateTime?
+  passwordResetToken       String?   @unique
+  passwordResetExpires     DateTime?
+  provider                 String    @default("local")
+  providerId               String?   @unique
+  mainLedgerId             String?
 
-  passwordResetToken    String?   @unique
-  passwordResetExpires  DateTime?
-
-  provider    String  @default("local") // 'local', 'google', 'kakao' 등
-  providerId  String? @unique // 소셜 서비스에서 제공하는 고유 ID
-
-  mainLedgerId String?
-
-  mainLedger        Ledger?          @relation("UserMainLedger", fields: [mainLedgerId], references: [id])
-  ledgerMemberships LedgerMember[]
-  invitationsSent   LedgerInvitation[] @relation("InvitationSender")
-  ownedLedgers      Ledger[]          @relation("LedgerOwner")
-  transactions      Transaction[]
-  activityLogs      LedgerActivityLog[]
+  mainLedger          Ledger?                  @relation("UserMainLedger", fields: [mainLedgerId], references: [id])
+  ledgerMemberships   LedgerMember[]
+  invitationsSent     LedgerInvitation[]       @relation("InvitationSender")
+  ownedLedgers        Ledger[]                 @relation("LedgerOwner")
+  transactions        Transaction[]
+  activityLogs        LedgerActivityLog[]
   notificationSetting UserNotificationSetting?
-  recurringRules    RecurringRule[]
-  scheduledDigests  ScheduledDigest[]
+  recurringRules      RecurringRule[]
+  scheduledDigests    ScheduledDigest[]
 }
 
 model Ledger {
@@ -48,19 +45,19 @@ model Ledger {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  owner        User          @relation("LedgerOwner", fields: [ownerId], references: [id])
-  members      LedgerMember[]
-  invitations  LedgerInvitation[]
-  assetGroups  AssetGroup[]
-  assets       Asset[]
-  categories   Category[]
-  mainUsers    User[]        @relation("UserMainLedger")
-  transactions Transaction[]
-  tags         Tag[]
-  goals        Goal[]
-  budgets      Budget[]
+  owner          User                @relation("LedgerOwner", fields: [ownerId], references: [id])
+  members        LedgerMember[]
+  invitations    LedgerInvitation[]
+  assetGroups    AssetGroup[]
+  assets         Asset[]
+  categories     Category[]
+  mainUsers      User[]              @relation("UserMainLedger")
+  transactions   Transaction[]
+  tags           Tag[]
+  goals          Goal[]
+  budgets        Budget[]
   recurringRules RecurringRule[]
-  activityLogs LedgerActivityLog[]
+  activityLogs   LedgerActivityLog[]
 }
 
 model LedgerMember {
@@ -77,15 +74,15 @@ model LedgerMember {
 }
 
 model LedgerInvitation {
-  id         String            @id @default(cuid())
-  ledgerId   String
-  email      String
-  role       LedgerMemberRole  @default(VIEWER)
-  token      String            @unique
-  status     InvitationStatus  @default(PENDING)
-  expiresAt  DateTime
+  id          String           @id @default(cuid())
+  ledgerId    String
+  email       String
+  role        LedgerMemberRole @default(VIEWER)
+  token       String           @unique
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
   invitedById String
-  createdAt  DateTime          @default(now())
+  createdAt   DateTime         @default(now())
   respondedAt DateTime?
 
   ledger    Ledger @relation(fields: [ledgerId], references: [id])
@@ -108,76 +105,83 @@ model AssetGroup {
 }
 
 model Asset {
-  id            String     @id @default(cuid())
-  ledgerId      String
-  groupId       String
-  name          String
-  type          AssetType
-  initialAmount Int        @default(0)
-  includeInNetWorth Boolean @default(true)
-  billingDay     Int?
+  id                    String    @id @default(cuid())
+  ledgerId              String
+  groupId               String
+  name                  String
+  type                  AssetType
+  initialAmount         Int       @default(0)
+  includeInNetWorth     Boolean   @default(true)
+  billingDay            Int?
   upcomingPaymentAmount Int?
-  sortOrder      Int        @default(0)
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  sortOrder             Int       @default(0)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  ledger Ledger     @relation(fields: [ledgerId], references: [id])
-  group  AssetGroup @relation(fields: [groupId], references: [id])
-  transactions        Transaction[]     @relation("PrimaryAsset")
-  relatedTransactions Transaction[]     @relation("RelatedAsset")
+  ledger              Ledger        @relation(fields: [ledgerId], references: [id])
+  group               AssetGroup    @relation(fields: [groupId], references: [id])
+  transactions        Transaction[] @relation("PrimaryAsset")
+  relatedTransactions Transaction[] @relation("RelatedAsset")
+
+  goals          Goal[]
+  budgetItems    BudgetItem[]
+  recurringRules RecurringRule[]
 
   @@unique([ledgerId, name])
 }
 
 model Category {
-  id         String       @id @default(cuid())
-  ledgerId   String
-  name       String
-  type       CategoryType
-  parentId   String?
-  sortOrder  Int          @default(0)
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id        String       @id @default(cuid())
+  ledgerId  String
+  name      String
+  type      CategoryType
+  parentId  String?
+  sortOrder Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
-  ledger     Ledger     @relation(fields: [ledgerId], references: [id])
-  parent     Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children   Category[] @relation("CategoryHierarchy")
+  ledger       Ledger             @relation(fields: [ledgerId], references: [id])
+  parent       Category?          @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children     Category[]         @relation("CategoryHierarchy")
   transactions Transaction[]
-  splits        TransactionSplit[]
+  splits       TransactionSplit[]
+
+  budgetItems    BudgetItem[]
+  recurringRules RecurringRule[]
 
   @@unique([ledgerId, name, parentId])
 }
 
 model Transaction {
-  id             String            @id @default(cuid())
-  ledgerId       String
-  assetId        String
-  relatedAssetId String?
-  categoryId     String?
+  id              String            @id @default(cuid())
+  ledgerId        String
+  assetId         String
+  relatedAssetId  String?
+  categoryId      String?
   recurringRuleId String?
-  createdById    String
-  type           TransactionType
-  status         TransactionStatus @default(ACTIVE)
+  createdById     String
+  type            TransactionType
+  status          TransactionStatus @default(ACTIVE)
   transactionDate DateTime
-  bookedAt       DateTime          @default(now())
-  amount         Int
-  memo           String?
-  note           String?
-  photoUrl       String?
-  receiptId      String?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  bookedAt        DateTime          @default(now())
+  amount          Int
+  memo            String?
+  note            String?
+  photoUrl        String?
+  receiptId       String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
-  ledger        Ledger      @relation(fields: [ledgerId], references: [id])
-  asset         Asset       @relation("PrimaryAsset", fields: [assetId], references: [id])
-  relatedAsset  Asset?      @relation("RelatedAsset", fields: [relatedAssetId], references: [id])
-  category      Category?   @relation(fields: [categoryId], references: [id])
-  createdBy     User        @relation(fields: [createdById], references: [id])
-  recurringRule RecurringRule? @relation(fields: [recurringRuleId], references: [id])
-  splits        TransactionSplit[]
-  tags          TransactionTag[]
-  attachments   TransactionAttachment[]
-  goalContributions GoalContribution[]
+  ledger             Ledger                  @relation(fields: [ledgerId], references: [id])
+  asset              Asset                   @relation("PrimaryAsset", fields: [assetId], references: [id])
+  relatedAsset       Asset?                  @relation("RelatedAsset", fields: [relatedAssetId], references: [id])
+  category           Category?               @relation(fields: [categoryId], references: [id])
+  createdBy          User                    @relation(fields: [createdById], references: [id])
+  recurringRule      RecurringRule?          @relation(fields: [recurringRuleId], references: [id])
+  splits             TransactionSplit[]
+  tags               TransactionTag[]
+  attachments        TransactionAttachment[]
+  goalContributions  GoalContribution[]
   recurringInstances RecurringInstance[]
 }
 
@@ -194,15 +198,15 @@ model TransactionSplit {
 }
 
 model Tag {
-  id        String    @id @default(cuid())
-  ledgerId  String
-  name      String
-  type      TagType   @default(CUSTOM)
+  id         String   @id @default(cuid())
+  ledgerId   String
+  name       String
+  type       TagType  @default(CUSTOM)
   usageCount Int      @default(0)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  ledger Ledger          @relation(fields: [ledgerId], references: [id])
+  ledger       Ledger           @relation(fields: [ledgerId], references: [id])
   transactions TransactionTag[]
 
   @@unique([ledgerId, name])
@@ -232,30 +236,30 @@ model TransactionAttachment {
 }
 
 model Goal {
-  id             String     @id @default(cuid())
-  ledgerId       String
-  assetId        String
-  name           String
-  targetAmount   Int
-  currentAmount  Int        @default(0)
-  targetDate     DateTime?
-  status         GoalStatus @default(ACTIVE)
-  achievedAt     DateTime?
-  coverImageUrl  String?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  ledgerId      String
+  assetId       String
+  name          String
+  targetAmount  Int
+  currentAmount Int        @default(0)
+  targetDate    DateTime?
+  status        GoalStatus @default(ACTIVE)
+  achievedAt    DateTime?
+  coverImageUrl String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
-  ledger       Ledger            @relation(fields: [ledgerId], references: [id])
-  asset        Asset             @relation(fields: [assetId], references: [id])
+  ledger        Ledger             @relation(fields: [ledgerId], references: [id])
+  asset         Asset              @relation(fields: [assetId], references: [id])
   contributions GoalContribution[]
 }
 
 model GoalContribution {
-  id           String      @id @default(cuid())
-  goalId       String
+  id            String   @id @default(cuid())
+  goalId        String
   transactionId String
-  amount       Int
-  createdAt    DateTime    @default(now())
+  amount        Int
+  createdAt     DateTime @default(now())
 
   goal        Goal        @relation(fields: [goalId], references: [id])
   transaction Transaction @relation(fields: [transactionId], references: [id])
@@ -278,61 +282,61 @@ model Budget {
 }
 
 model BudgetItem {
-  id         String   @id @default(cuid())
-  budgetId   String
+  id           String   @id @default(cuid())
+  budgetId     String
   parentItemId String?
-  categoryId String?
-  assetId    String?
-  amount     Int
-  path       String?
-  sortOrder  Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  categoryId   String?
+  assetId      String?
+  amount       Int
+  path         String?
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  budget   Budget   @relation(fields: [budgetId], references: [id])
-  parent   BudgetItem? @relation("BudgetItemHierarchy", fields: [parentItemId], references: [id])
+  budget   Budget       @relation(fields: [budgetId], references: [id])
+  parent   BudgetItem?  @relation("BudgetItemHierarchy", fields: [parentItemId], references: [id])
   children BudgetItem[] @relation("BudgetItemHierarchy")
-  category Category? @relation(fields: [categoryId], references: [id])
-  asset    Asset?    @relation(fields: [assetId], references: [id])
+  category Category?    @relation(fields: [categoryId], references: [id])
+  asset    Asset?       @relation(fields: [assetId], references: [id])
 }
 
 model RecurringRule {
-  id            String            @id @default(cuid())
-  ledgerId      String
-  assetId       String
-  categoryId    String?
-  createdById   String
-  title         String?
-  amount        Int
-  type          TransactionType
-  interval      RecurringInterval
-  dayOfMonth    Int?
-  dayOfWeek     Int?
-  monthOfYear   Int?
-  startDate     DateTime
-  endDate       DateTime?
-  leadTimeDays  Int?             @default(0)
-  note          String?
-  isActive      Boolean          @default(true)
-  nextRunAt     DateTime?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id           String            @id @default(cuid())
+  ledgerId     String
+  assetId      String
+  categoryId   String?
+  createdById  String
+  title        String?
+  amount       Int
+  type         TransactionType
+  interval     RecurringInterval
+  dayOfMonth   Int?
+  dayOfWeek    Int?
+  monthOfYear  Int?
+  startDate    DateTime
+  endDate      DateTime?
+  leadTimeDays Int?              @default(0)
+  note         String?
+  isActive     Boolean           @default(true)
+  nextRunAt    DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
-  ledger     Ledger     @relation(fields: [ledgerId], references: [id])
-  asset      Asset      @relation(fields: [assetId], references: [id])
-  category   Category?  @relation(fields: [categoryId], references: [id])
-  createdBy  User       @relation(fields: [createdById], references: [id])
+  ledger       Ledger              @relation(fields: [ledgerId], references: [id])
+  asset        Asset               @relation(fields: [assetId], references: [id])
+  category     Category?           @relation(fields: [categoryId], references: [id])
+  createdBy    User                @relation(fields: [createdById], references: [id])
   transactions Transaction[]
-  instances  RecurringInstance[]
+  instances    RecurringInstance[]
 }
 
 model RecurringInstance {
-  id           String             @id @default(cuid())
-  ruleId       String
+  id            String          @id @default(cuid())
+  ruleId        String
   transactionId String?
   scheduledDate DateTime
-  status       RecurringStatus    @default(SCHEDULED)
-  createdAt    DateTime           @default(now())
+  status        RecurringStatus @default(SCHEDULED)
+  createdAt     DateTime        @default(now())
 
   rule        RecurringRule @relation(fields: [ruleId], references: [id])
   transaction Transaction?  @relation(fields: [transactionId], references: [id])
@@ -351,24 +355,24 @@ model LedgerActivityLog {
 }
 
 model UserNotificationSetting {
-  id                 String  @id @default(cuid())
-  userId             String  @unique
-  weeklyDigest       Boolean @default(false)
-  monthlyDigest      Boolean @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  weeklyDigest  Boolean  @default(false)
+  monthlyDigest Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 }
 
 model ScheduledDigest {
-  id          String   @id @default(cuid())
-  userId      String
-  type        DigestType
+  id           String     @id @default(cuid())
+  userId       String
+  type         DigestType
   scheduledFor DateTime
-  payload     Json?
-  createdAt   DateTime @default(now())
-  sentAt      DateTime?
+  payload      Json?
+  createdAt    DateTime   @default(now())
+  sentAt       DateTime?
 
   user User @relation(fields: [userId], references: [id])
 }
