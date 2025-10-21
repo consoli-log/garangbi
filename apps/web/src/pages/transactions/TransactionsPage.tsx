@@ -34,8 +34,8 @@ interface SplitFormValue {
 
 interface AttachmentPreview {
   id: string;
-  fileUrl: string;
-  thumbnailUrl?: string | null;
+  file: File;
+  previewUrl: string;
   mimeType: string;
   size: number;
   name: string;
@@ -141,6 +141,7 @@ export function TransactionsPage() {
 
   const [view, setView] = useState<ViewOption>(VIEW_OPTIONS.LIST);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSplitMode, setIsSplitMode] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
@@ -149,6 +150,7 @@ export function TransactionsPage() {
   const [assets, setAssets] = useState<AssetOption[]>([]);
   const [categories, setCategories] = useState<CategoryNode[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [hasShownAttachmentNotice, setHasShownAttachmentNotice] = useState(false);
 
   const form = useForm<TransactionFormValues>({
     defaultValues: {
@@ -174,6 +176,7 @@ export function TransactionsPage() {
     reset,
     handleSubmit,
     formState: { errors },
+    getValues,
   } = form;
 
   const splitsArray = useFieldArray({ control, name: 'splits' });
@@ -193,15 +196,23 @@ export function TransactionsPage() {
     }, 0);
   }, [splitValues]);
 
-  const amountMismatch = useMemo(() => {
-    if (!splitValues?.length) {
-      return false;
+const amountMismatch = useMemo(() => {
+  if (!isSplitMode || !splitValues?.length) {
+    return false;
+  }
+  if (amountValue === '' || typeof amountValue !== 'number') {
+    return true;
+  }
+  return splitTotal !== amountValue;
+}, [amountValue, splitTotal, splitValues, isSplitMode]);
+
+const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
+  attachments.forEach((attachment) => {
+    if (attachment.previewUrl) {
+      URL.revokeObjectURL(attachment.previewUrl);
     }
-    if (amountValue === '' || typeof amountValue !== 'number') {
-      return true;
-    }
-    return splitTotal !== amountValue;
-  }, [amountValue, splitTotal, splitValues]);
+  });
+};
 
   useEffect(() => {
     if (typeValue === TransactionType.TRANSFER) {
@@ -266,13 +277,49 @@ export function TransactionsPage() {
     loadLedgerData();
   }, [ledgerId, filters]);
 
+  useEffect(() => {
+    const currentAssetId = getValues('assetId');
+    if (!currentAssetId && assets.length) {
+      setValue('assetId', assets[0].id);
+    }
+  }, [assets, getValues, setValue]);
+
   const groupedTransactions = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
+
+  const handleToggleSplitMode = (value: boolean) => {
+    setIsSplitMode(value);
+    if (value) {
+      if (!splitsArray.fields.length) {
+        splitsArray.append({ categoryId: '', amount: '' });
+      }
+    } else if (splitsArray.fields.length) {
+      splitsArray.replace([]);
+    }
+  };
+
+  const handleFillSplitAmount = (index: number) => {
+    if (typeof amountValue !== 'number') {
+      toast.warn('총 금액을 먼저 입력해주세요.');
+      return;
+    }
+    const remainder = amountValue - splitValues.reduce((sum, split, idx) => {
+      if (idx === index) {
+        return sum;
+      }
+      const value = typeof split.amount === 'number' ? split.amount : Number(split.amount) || 0;
+      return sum + value;
+    }, 0);
+    const nextAmount = remainder > 0 ? remainder : 0;
+    setValue(`splits.${index}.amount`, nextAmount, { shouldDirty: true });
+  };
 
   const handleOpenForm = () => {
     if (!assets.length) {
       toast.warn('자산 정보를 불러오고 있습니다. 잠시 후 다시 시도해주세요.');
       return;
     }
+    clearAttachmentPreviews(attachmentsValue);
+    setIsSplitMode(false);
     setIsFormOpen(true);
     reset({
       type: TransactionType.EXPENSE,
@@ -287,6 +334,11 @@ export function TransactionsPage() {
       splits: [],
       attachments: [],
     });
+  };
+
+  const handleCloseForm = () => {
+    clearAttachmentPreviews(attachmentsValue);
+    setIsFormOpen(false);
   };
 
   const onSubmit = async (values: TransactionFormValues) => {
@@ -322,6 +374,15 @@ export function TransactionsPage() {
 
     try {
       setIsLoading(true);
+
+      const cleanedTags = values.tags.filter((tag) => tag.trim().length > 0);
+      const cleanedSplits = values.splits
+        .filter((split) => split.categoryId && split.amount !== '')
+        .map((split) => ({
+          categoryId: split.categoryId,
+          amount: Number(split.amount),
+          memo: split.memo,
+        }));
       await transactionsService.createTransaction(ledgerId, {
         type: values.type,
         transactionDate: values.transactionDate,
@@ -331,26 +392,14 @@ export function TransactionsPage() {
         categoryId: values.type === TransactionType.TRANSFER ? null : values.categoryId ?? null,
         memo: values.memo,
         note: values.note,
-        tags: values.tags,
-        splits: values.splits.length
-          ? values.splits.map((split) => ({
-              categoryId: split.categoryId,
-              amount: Number(split.amount),
-              memo: split.memo,
-            }))
-          : undefined,
-        attachments: values.attachments.length
-          ? values.attachments.map((attachment) => ({
-              fileUrl: attachment.fileUrl,
-              thumbnailUrl: attachment.thumbnailUrl ?? null,
-              mimeType: attachment.mimeType,
-              size: attachment.size,
-            }))
-          : undefined,
+        tags: cleanedTags.length ? cleanedTags : undefined,
+        splits: cleanedSplits.length ? cleanedSplits : undefined,
       });
 
       toast.success('거래가 성공적으로 저장되었습니다.');
-      setIsFormOpen(false);
+      clearAttachmentPreviews(values.attachments);
+      setIsSplitMode(false);
+      handleCloseForm();
       reset();
 
       const refreshed = await transactionsService.listTransactions(ledgerId, filters);
@@ -363,7 +412,7 @@ export function TransactionsPage() {
     }
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files?.length) {
       return;
@@ -373,35 +422,35 @@ export function TransactionsPage() {
     const limitExceeded = current.length + files.length > 5;
     if (limitExceeded) {
       toast.warn('이미지는 최대 5개까지 첨부할 수 있습니다.');
+      event.target.value = '';
       return;
     }
 
-    const previews: AttachmentPreview[] = await Promise.all(
-      Array.from(files).map((file) =>
-        new Promise<AttachmentPreview>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            resolve({
-              id: crypto.randomUUID(),
-              fileUrl: reader.result as string,
-              thumbnailUrl: reader.result as string,
-              mimeType: file.type,
-              size: file.size,
-              name: file.name,
-            });
-          };
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(file);
-        }),
-      ),
-    );
+    if (!hasShownAttachmentNotice) {
+      toast.info('이미지 업로드는 추후 지원 예정입니다. 현재는 미리보기만 제공합니다.');
+      setHasShownAttachmentNotice(true);
+    }
 
-    setValue('attachments', [...current, ...previews]);
+    const previews: AttachmentPreview[] = Array.from(files).map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+      mimeType: file.type,
+      size: file.size,
+      name: file.name,
+    }));
+
+    setValue('attachments', [...current, ...previews], { shouldDirty: true });
+    event.target.value = '';
   };
 
   const removeAttachment = (id: string) => {
+    const target = attachmentsValue.find((file) => file.id === id);
+    if (target) {
+      URL.revokeObjectURL(target.previewUrl);
+    }
     const filtered = attachmentsValue.filter((file) => file.id !== id);
-    setValue('attachments', filtered);
+    setValue('attachments', filtered, { shouldDirty: true });
   };
 
   const handleSelectTransaction = async (transaction: Transaction) => {
@@ -527,11 +576,15 @@ export function TransactionsPage() {
       {isFormOpen ? (
         <TransactionFormSheet
           isOpen={isFormOpen}
-          onClose={() => setIsFormOpen(false)}
+          onClose={handleCloseForm}
           onSubmit={handleSubmit(onSubmit)}
           register={register}
           control={control}
           splitsArray={splitsArray}
+          isSplitMode={isSplitMode}
+          onToggleSplitMode={handleToggleSplitMode}
+          onFillSplitAmount={handleFillSplitAmount}
+          amountValue={amountValue}
           amountFormatted={formatCurrency(amountValue || 0)}
           assets={assets}
           categories={categories}
@@ -991,6 +1044,10 @@ interface TransactionFormSheetProps {
   register: UseFormRegister<TransactionFormValues>;
   control: Control<TransactionFormValues>;
   splitsArray: UseFieldArrayReturn<TransactionFormValues, 'splits'>;
+  isSplitMode: boolean;
+  onToggleSplitMode: (value: boolean) => void;
+  onFillSplitAmount: (index: number) => void;
+  amountValue: number | '';
   amountFormatted: string;
   assets: AssetOption[];
   categories: CategoryNode[];
@@ -1011,6 +1068,10 @@ function TransactionFormSheet({
   register,
   control,
   splitsArray,
+  isSplitMode,
+  onToggleSplitMode,
+  onFillSplitAmount,
+  amountValue,
   amountFormatted,
   assets,
   categories,
@@ -1024,6 +1085,9 @@ function TransactionFormSheet({
   setValue,
 }: TransactionFormSheetProps) {
   if (!isOpen) return null;
+
+  const effectiveAmount = typeof amountValue === 'number' ? amountValue : 0;
+  const remainder = effectiveAmount - splitTotal;
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 px-4 py-6">
@@ -1168,73 +1232,112 @@ function TransactionFormSheet({
             </div>
           </section>
 
-          <section className="flex flex-col gap-2">
-            <label className="text-xs font-semibold uppercase text-pixel-ink/70">거래 쪼개기</label>
-            <div className="flex flex-col gap-3">
-              {splitsArray.fields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="grid gap-3 rounded-2xl border-2 border-dashed border-black/40 px-4 py-3 md:grid-cols-3"
-                >
-                  <select
-                    className="rounded-2xl border-2 border-black px-3 py-2 text-sm"
-                    {...register(`splits.${index}.categoryId` as const, { required: true })}
-                  >
-                    <option value="">분류 선택</option>
-                    {categories
-                      .filter((category) => category.type === CategoryType.EXPENSE)
-                      .map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                  </select>
-                  <input
-                    type="number"
-                    className="rounded-2xl border-2 border-black px-3 py-2 text-sm"
-                    {...register(`splits.${index}.amount` as const, {
-                      valueAsNumber: true,
-                      required: true,
-                    })}
-                  />
-                  <input
-                    type="text"
-                    placeholder="메모"
-                    className="rounded-2xl border-2 border-black px-3 py-2 text-sm"
-                    {...register(`splits.${index}.memo` as const)}
-                  />
-                  <button
-                    type="button"
-                    className="text-left text-xs text-pixel-red"
-                    onClick={() => splitsArray.remove(index)}
-                  >
-                    삭제
-                  </button>
-                </div>
-              ))}
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase text-pixel-ink/70">
+                거래 쪼개기 (선택)
+              </label>
               <button
                 type="button"
-                className="self-start rounded-full border-2 border-black bg-white px-3 py-1 text-xs font-semibold uppercase shadow-pixel-sm"
-                onClick={() =>
-                  splitsArray.append({
-                    categoryId: '',
-                    amount: '',
-                  })
-                }
+                className="rounded-full border-2 border-black bg-white px-3 py-1 text-xs font-semibold uppercase shadow-pixel-sm"
+                onClick={() => onToggleSplitMode(!isSplitMode)}
               >
-                + 항목 추가
+                {isSplitMode ? '분할 종료' : '분할 사용'}
               </button>
-              {splitsArray.fields.length ? (
-                <div className="text-xs text-pixel-ink/70">
-                  분할 합계: {formatCurrency(splitTotal)}원
-                </div>
-              ) : null}
             </div>
+            {isSplitMode ? (
+              <div className="flex flex-col gap-3">
+                {splitsArray.fields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="grid gap-3 rounded-2xl border-2 border-dashed border-black/40 px-4 py-3 md:grid-cols-3"
+                  >
+                    <select
+                      className="rounded-2xl border-2 border-black px-3 py-2 text-sm"
+                      {...register(`splits.${index}.categoryId` as const, { required: true })}
+                    >
+                      <option value="">분류 선택</option>
+                      {categories
+                        .filter((category) => category.type === CategoryType.EXPENSE)
+                        .map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                    </select>
+                    <input
+                      type="number"
+                      className="rounded-2xl border-2 border-black px-3 py-2 text-sm"
+                      {...register(`splits.${index}.amount` as const, {
+                        valueAsNumber: true,
+                        required: true,
+                      })}
+                    />
+                    <input
+                      type="text"
+                      placeholder="메모 (선택)"
+                      className="rounded-2xl border-2 border-black px-3 py-2 text-sm"
+                      {...register(`splits.${index}.memo` as const)}
+                    />
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-pixel-ink/60 md:col-span-3">
+                      <button
+                        type="button"
+                        className="rounded-full border border-black bg-white px-2 py-1 text-[10px] uppercase"
+                        onClick={() => onFillSplitAmount(index)}
+                      >
+                        잔액 채우기
+                      </button>
+                      <button
+                        type="button"
+                        className="text-left text-xs text-pixel-red"
+                        onClick={() => splitsArray.remove(index)}
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="self-start rounded-full border-2 border-black bg-white px-3 py-1 text-xs font-semibold uppercase shadow-pixel-sm"
+                  onClick={() =>
+                    splitsArray.append({
+                      categoryId: '',
+                      amount: '',
+                    })
+                  }
+                >
+                  + 항목 추가
+                </button>
+                <div className="flex items-center justify-between text-xs text-pixel-ink/70">
+                  <span>분할 합계: {formatCurrency(splitTotal)}원</span>
+                  <span
+                    className={cn(
+                      remainder === 0 ? 'text-pixel-green' : 'text-pixel-red',
+                    )}
+                  >
+                    잔액: {remainder >= 0 ? '' : '-'}{formatCurrency(Math.abs(remainder))}원
+                  </span>
+                </div>
+                {amountMismatch ? (
+                  <div className="rounded-2xl bg-pixel-red/10 px-3 py-2 text-xs text-pixel-red">
+                    분할 금액의 합계가 총 금액과 일치해야 저장할 수 있습니다.
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="rounded-2xl bg-pixel-dark/10 px-3 py-2 text-xs text-pixel-ink/60">
+                분할을 사용하지 않으면 전체 금액이 선택한 카테고리에 한 번에 기록됩니다.
+              </p>
+            )}
           </section>
 
           <section className="flex flex-col gap-2">
-            <label className="text-xs font-semibold uppercase text-pixel-ink/70">사진 첨부</label>
+            <label className="text-xs font-semibold uppercase text-pixel-ink/70">사진 첨부 (선택)</label>
             <input type="file" accept="image/*" multiple onChange={onFileSelect} />
+            <p className="text-xs text-pixel-ink/50">
+              현재는 테스트 환경으로, 이미지는 서버에 업로드되지 않고 미리보기로만 확인할 수 있습니다.
+            </p>
             {attachments.length ? (
               <div className="flex flex-wrap gap-3">
                 {attachments.map((attachment) => (
@@ -1243,7 +1346,7 @@ function TransactionFormSheet({
                     className="relative h-24 w-24 overflow-hidden rounded-2xl border-2 border-black"
                   >
                     <img
-                      src={attachment.thumbnailUrl ?? attachment.fileUrl}
+                      src={attachment.previewUrl}
                       alt={attachment.name}
                       className="h-full w-full object-cover"
                     />

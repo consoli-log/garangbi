@@ -1,6 +1,5 @@
 import {
   ArrayMaxSize,
-  ArrayMinSize,
   IsArray,
   IsDateString,
   IsEnum,
@@ -59,7 +58,7 @@ export class CreateTransactionDto {
   @IsDateString()
   transactionDate: string;
 
-  @IsUUID()
+  @IsUUID('all')
   assetId: string;
 
   @IsOptional()
@@ -89,7 +88,6 @@ export class CreateTransactionDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @ArrayMaxSize(20)
   @ValidateNested({ each: true })
   @Type(() => TransactionSplitDto)
@@ -97,7 +95,6 @@ export class CreateTransactionDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @ArrayMaxSize(20)
   @IsString({ each: true })
   @MaxLength(40, { each: true })
@@ -105,7 +102,6 @@ export class CreateTransactionDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @ArrayMaxSize(5)
   @ValidateNested({ each: true })
   @Type(() => TransactionAttachmentDto)
