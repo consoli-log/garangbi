@@ -457,22 +457,20 @@ export function LedgerManagementPage() {
 
   const tabButtonClass = (isActive: boolean) =>
     cn(
-      'rounded-none border-4 border-black px-4 py-2 text-[11px] font-bold uppercase tracking-widest shadow-pixel-sm transition hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-pixel-md focus:outline-none',
-      isActive ? 'bg-pixel-purple text-white' : 'bg-[#31344c] text-pixel-yellow',
+      'rounded-[18px] border-4 border-black px-5 py-3 text-sm font-semibold uppercase tracking-wider text-pixel-ink shadow-pixel-sm transition-transform duration-200 ease-out hover:-translate-x-1 hover:-translate-y-1 hover:shadow-pixel-md focus:outline-none',
+      isActive ? 'bg-pixel-blue text-white' : 'bg-white text-pixel-ink/70',
     );
 
   const selectClass =
-    'w-full rounded-none border-4 border-black bg-[#1d1f2a] px-4 py-3 text-[11px] uppercase tracking-wide text-pixel-yellow shadow-pixel-sm focus:border-pixel-blue focus:outline-none';
+    'w-full rounded-[22px] border-4 border-black bg-white px-5 py-3 text-base font-semibold text-pixel-ink shadow-pixel-sm transition-transform duration-200 ease-out focus:-translate-x-1 focus:-translate-y-1 focus:border-pixel-blue focus:shadow-pixel-md focus:outline-none';
   const primaryButtonClass =
-    'inline-flex items-center justify-center rounded-none border-4 border-black bg-pixel-blue px-5 py-2.5 text-[11px] font-bold uppercase tracking-widest text-black shadow-pixel-md transition hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-pixel-lg disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
-  const secondaryButtonClass =
-    'inline-flex items-center justify-center rounded-none border-4 border-black bg-[#31344c] px-5 py-2.5 text-[11px] font-bold uppercase tracking-widest text-pixel-yellow shadow-pixel-sm transition hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-pixel-md disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
+    'pixel-button bg-pixel-blue text-white hover:text-white disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none';
   const chipButtonClass =
-    'inline-flex items-center justify-center rounded-none border-4 border-black bg-[#2a2d3f] px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-pixel-yellow shadow-pixel-sm transition hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-pixel-md disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
+    'pixel-button px-4 py-2 bg-white text-pixel-ink hover:text-pixel-ink shadow-pixel-sm disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-200 disabled:text-gray-500 disabled:shadow-none';
   const dangerChipButtonClass =
-    'inline-flex items-center justify-center rounded-none border-4 border-black bg-pixel-red px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-pixel-sm transition hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-pixel-md disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
-  const cardClass = 'pixel-box bg-[#23263a] text-[11px] text-pixel-yellow';
-  const subtleCardClass = 'pixel-box bg-[#23263a]';
+    'pixel-button px-4 py-2 bg-pixel-red text-white hover:text-white shadow-pixel-sm disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none';
+  const cardClass = 'pixel-box text-sm text-pixel-ink';
+  const subtleCardClass = 'pixel-box';
 
   const renderCategoryNode = (node: CategoryNode, depth = 0) => {
     const siblingList = findCategorySiblings(node.type, node.parentId ?? null);
@@ -483,10 +481,10 @@ export function LedgerManagementPage() {
     return (
       <li
         key={node.id}
-        className="border-4 border-black bg-[#1d1f2a] p-4 text-pixel-yellow shadow-pixel-sm"
+        className="border-4 border-black bg-white p-4 text-pixel-ink shadow-pixel-sm"
       >
         <div className="flex flex-wrap items-center justify-between gap-2" style={{ paddingLeft: depth * 16 }}>
-          <span className="text-[11px] font-bold uppercase text-pixel-yellow">
+          <span className="text-sm font-bold uppercase text-pixel-ink">
             {node.name}
           </span>
           <div className="flex flex-wrap gap-2">
@@ -542,11 +540,9 @@ export function LedgerManagementPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="pixel-box bg-[#23263a] text-pixel-yellow">
-        <h1 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
-          가계부 상세 관리
-        </h1>
-        <p className="mt-2 text-[11px] text-pixel-yellow">
+      <div className="pixel-box text-pixel-ink">
+        <h1 className="pixel-heading">가계부 상세 관리</h1>
+        <p className="mt-2 text-sm text-pixel-ink/75">
           자산과 카테고리를 구성해 가계부 구조를 정리하세요.
         </p>
       </div>
@@ -559,26 +555,26 @@ export function LedgerManagementPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          <div className="pixel-box bg-[#1f2230]">
+          <div className="pixel-box">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-bold uppercase text-pixel-yellow" htmlFor="ledger-select">
-                가계부 선택
-              </label>
-              <select
-                id="ledger-select"
-                className={selectClass}
-                value={selectedLedgerId}
-                onChange={(event) => setSelectedLedgerId(event.target.value)}
-              >
-                {editableLedgers.map((ledger) => (
-                  <option key={ledger.id} value={ledger.id}>
-                    {ledger.name} ({ledger.role === LedgerMemberRole.OWNER ? '소유자' : '편집 권한'})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="mt-4 inline-flex items-center gap-2 rounded-none border-4 border-black bg-[#31344c] p-1 md:mt-0">
+                <label className="text-sm font-semibold uppercase text-pixel-ink" htmlFor="ledger-select">
+                  가계부 선택
+                </label>
+                <select
+                  id="ledger-select"
+                  className={selectClass}
+                  value={selectedLedgerId}
+                  onChange={(event) => setSelectedLedgerId(event.target.value)}
+                >
+                  {editableLedgers.map((ledger) => (
+                    <option key={ledger.id} value={ledger.id}>
+                      {ledger.name} ({ledger.role === LedgerMemberRole.OWNER ? '소유자' : '편집 권한'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-[24px] border-4 border-black bg-white p-1 md:mt-0">
               <button type="button" className={tabButtonClass(activeTab === 'assets')} onClick={() => setActiveTab('assets')}>
                 자산 관리
               </button>
@@ -591,10 +587,8 @@ export function LedgerManagementPage() {
 
           {activeTab === 'assets' ? (
             <div className="flex flex-col gap-5">
-              <div className="flex flex-wrap items-center justify-between gap-3 text-pixel-yellow">
-                <h2 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
-                  자산 그룹 및 자산
-                </h2>
+              <div className="flex flex-wrap items-center justify-between gap-3 text-pixel-ink">
+                <h2 className="pixel-heading">자산 그룹 및 자산</h2>
                 <button
                   type="button"
                   className={primaryButtonClass}
@@ -615,10 +609,10 @@ export function LedgerManagementPage() {
                     <div key={group.id} className={subtleCardClass}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <h3 className="text-[12px] font-bold uppercase tracking-widest text-pixel-yellow">
+                          <h3 className="text-lg font-bold uppercase text-pixel-ink">
                             {group.name}
                           </h3>
-                          <p className="text-[10px] uppercase text-pixel-yellow/80">
+                          <p className="text-sm uppercase text-pixel-ink/70">
                             {assetGroupTypeLabel[group.type]}
                           </p>
                         </div>
@@ -657,7 +651,7 @@ export function LedgerManagementPage() {
                       </div>
 
                       {group.assets.length === 0 ? (
-                        <div className="mt-4 border-4 border-dashed border-pixel-yellow/50 bg-[#1d1f2a] px-4 py-6 text-center text-[11px] text-pixel-yellow">
+                        <div className="mt-4 border-4 border-dashed border-pixel-yellow/50 bg-white px-4 py-6 text-center text-sm text-pixel-ink">
                           아직 자산이 없습니다. 아래 버튼으로 첫 자산을 추가하세요.
                         </div>
                       ) : (
@@ -665,13 +659,13 @@ export function LedgerManagementPage() {
                           {group.assets.map((asset, assetIndex) => (
                             <div
                               key={asset.id}
-                              className="flex flex-col gap-3 border-4 border-black bg-[#1d1f2a] p-4 text-pixel-yellow shadow-pixel-sm md:flex-row md:items-center md:justify-between"
+                              className="flex flex-col gap-3 border-4 border-black bg-white p-4 text-pixel-ink shadow-pixel-sm md:flex-row md:items-center md:justify-between"
                             >
                               <div>
-                                <p className="text-[11px] font-bold uppercase text-pixel-yellow">
+                                <p className="text-sm font-bold uppercase text-pixel-ink">
                                   {asset.name}
                                 </p>
-                                <div className="mt-1 flex flex-wrap gap-3 text-[10px] uppercase text-pixel-yellow/80">
+                                <div className="mt-1 flex flex-wrap gap-3 text-xs uppercase text-pixel-ink/80">
                                   <span>{assetTypeLabel[asset.type]}</span>
                                   <span>초기 금액 {asset.initialAmount.toLocaleString()}원</span>
                                   <span>{asset.includeInNetWorth ? '순자산 포함' : '순자산 제외'}</span>
@@ -738,12 +732,12 @@ export function LedgerManagementPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-5">
-              <div className="flex flex-wrap items-center justify-between gap-3 text-pixel-yellow">
-                <h2 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-pixel-ink">
+                <h2 className="pixel-heading text-2xl">
                   카테고리 구조
                 </h2>
                 {selectedLedger ? (
-                  <span className="text-[11px] font-bold uppercase">
+                  <span className="text-sm font-semibold uppercase text-pixel-ink/60">
                     {selectedLedger.currency} · 정산 기준일 매월 {selectedLedger.monthStartDay}일 · 참여 {selectedLedger.memberCount}명
                   </span>
                 ) : null}
@@ -751,7 +745,7 @@ export function LedgerManagementPage() {
               <div className="grid gap-5 lg:grid-cols-2">
                 <div className={cardClass}>
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="text-[12px] font-bold uppercase tracking-widest text-pixel-yellow">
+                    <h3 className="pixel-heading text-xl">
                       수입 카테고리
                     </h3>
                     <button
@@ -763,11 +757,11 @@ export function LedgerManagementPage() {
                     </button>
                   </div>
                   {isCategoriesLoading ? (
-                    <div className="border-4 border-dashed border-pixel-yellow/50 bg-[#1d1f2a] px-4 py-6 text-center text-[11px] text-pixel-yellow">
+                    <div className="border-4 border-dashed border-pixel-yellow/50 bg-white px-4 py-6 text-center text-sm text-pixel-ink">
                       카테고리를 불러오는 중입니다...
                     </div>
                   ) : categories.income.length === 0 ? (
-                    <div className="border-4 border-dashed border-pixel-yellow/50 bg-[#1d1f2a] px-4 py-6 text-center text-[11px] text-pixel-yellow">
+                    <div className="border-4 border-dashed border-pixel-yellow/50 bg-white px-4 py-6 text-center text-sm text-pixel-ink">
                       수입 카테고리가 없습니다. 첫 번째 항목을 추가해보세요.
                     </div>
                   ) : (
@@ -778,7 +772,7 @@ export function LedgerManagementPage() {
                 </div>
                 <div className={cardClass}>
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="text-[12px] font-bold uppercase tracking-widest text-pixel-yellow">
+                    <h3 className="pixel-heading text-xl">
                       지출 카테고리
                     </h3>
                     <button
@@ -790,11 +784,11 @@ export function LedgerManagementPage() {
                     </button>
                   </div>
                   {isCategoriesLoading ? (
-                    <div className="border-4 border-dashed border-pixel-yellow/50 bg-[#1d1f2a] px-4 py-6 text-center text-[11px] text-pixel-yellow">
+                    <div className="border-4 border-dashed border-pixel-yellow/50 bg-white px-4 py-6 text-center text-sm text-pixel-ink">
                       카테고리를 불러오는 중입니다...
                     </div>
                   ) : categories.expense.length === 0 ? (
-                    <div className="border-4 border-dashed border-pixel-yellow/50 bg-[#1d1f2a] px-4 py-6 text-center text-[11px] text-pixel-yellow">
+                    <div className="border-4 border-dashed border-pixel-yellow/50 bg-white px-4 py-6 text-center text-sm text-pixel-ink">
                       지출 카테고리가 없습니다. 첫 번째 항목을 추가해보세요.
                     </div>
                   ) : (
@@ -832,13 +826,17 @@ export function LedgerManagementPage() {
   );
 }
 
-const modalOverlayClass = 'fixed inset-0 z-[200] flex items-center justify-center bg-[#05060c]/80 px-4';
-const modalCardClass = 'w-full max-w-lg border-4 border-black bg-[#2a2d3f] p-6 text-pixel-yellow shadow-pixel-lg';
-const modalSectionClass = 'flex flex-col gap-3';
-const modalLabelClass = 'text-[11px] font-bold uppercase text-pixel-yellow';
+const modalOverlayClass = 'fixed inset-0 z-[200] flex items-center justify-center bg-[#05060c]/70 px-4';
+const modalCardClass = 'pixel-box w-full max-w-lg text-pixel-ink';
+const modalSectionClass = 'flex flex-col gap-4';
+const modalLabelClass = 'text-sm font-semibold uppercase text-pixel-ink';
 const modalInputClass =
-  'w-full rounded-none border-4 border-black bg-[#1d1f2a] px-4 py-3 text-[11px] uppercase tracking-wide text-pixel-yellow shadow-pixel-sm focus:border-pixel-blue focus:outline-none';
-const modalErrorClass = 'text-[10px] font-bold uppercase text-pixel-red';
+  'w-full rounded-[22px] border-4 border-black bg-white px-5 py-3 text-base font-semibold text-pixel-ink shadow-pixel-sm transition-transform duration-200 ease-out placeholder:text-pixel-ink/35 focus:-translate-x-1 focus:-translate-y-1 focus:border-pixel-blue focus:shadow-pixel-md focus:outline-none';
+const modalErrorClass = 'text-xs font-semibold uppercase text-pixel-red';
+const modalPrimaryButtonClass =
+  'pixel-button bg-pixel-blue text-white hover:text-white disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none';
+const modalSecondaryButtonClass =
+  'pixel-button px-4 py-2 bg-white text-pixel-ink hover:text-pixel-ink shadow-pixel-sm disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-200 disabled:text-gray-500 disabled:shadow-none';
 
 function AssetGroupModal({ mode, group, onClose, onSubmit }: AssetGroupModalProps) {
   const {
@@ -860,7 +858,7 @@ function AssetGroupModal({ mode, group, onClose, onSubmit }: AssetGroupModalProp
   return (
     <div className={modalOverlayClass}>
       <div className={modalCardClass}>
-        <h3 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
+        <h3 className="pixel-heading">
           {mode === 'create' ? '새 자산 그룹' : '자산 그룹 수정'}
         </h3>
         <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit(submitHandler)}>
@@ -881,10 +879,10 @@ function AssetGroupModal({ mode, group, onClose, onSubmit }: AssetGroupModalProp
             {errors.type ? <p className={modalErrorClass}>{errors.type.message}</p> : null}
           </div>
           <div className="flex justify-end gap-3">
-            <button type="button" className={secondaryButtonClass} onClick={onClose}>
+            <button type="button" className={modalSecondaryButtonClass} onClick={onClose}>
               취소
             </button>
-            <button type="submit" className={primaryButtonClass} disabled={isSubmitting}>
+            <button type="submit" className={modalPrimaryButtonClass} disabled={isSubmitting}>
               {isSubmitting ? '저장 중...' : '저장'}
             </button>
           </div>
@@ -922,7 +920,7 @@ function AssetModal({ mode, asset, selectedGroupId, groups, onClose, onSubmit }:
   return (
     <div className={modalOverlayClass}>
       <div className={modalCardClass}>
-        <h3 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
+        <h3 className="pixel-heading">
           {mode === 'create' ? '새 자산 추가' : '자산 수정'}
         </h3>
         <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit(submitHandler)}>
@@ -993,19 +991,19 @@ function AssetModal({ mode, asset, selectedGroupId, groups, onClose, onSubmit }:
             <div className="mt-6 flex items-center gap-2">
               <input
                 type="checkbox"
-                className="h-4 w-4 border-4 border-black bg-[#1d1f2a] text-pixel-yellow focus:outline-none focus:ring-0"
+                className="h-4 w-4 border-4 border-black bg-white text-pixel-ink focus:outline-none focus:ring-0"
                 {...register('includeInNetWorth')}
               />
-              <span className="text-[11px] font-bold uppercase text-pixel-yellow">
+              <span className="text-sm font-bold uppercase text-pixel-ink">
                 순자산에 포함
               </span>
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <button type="button" className={secondaryButtonClass} onClick={onClose}>
+            <button type="button" className={modalSecondaryButtonClass} onClick={onClose}>
               취소
             </button>
-            <button type="submit" className={primaryButtonClass} disabled={isSubmitting}>
+            <button type="submit" className={modalPrimaryButtonClass} disabled={isSubmitting}>
               {isSubmitting ? '저장 중...' : '저장'}
             </button>
           </div>

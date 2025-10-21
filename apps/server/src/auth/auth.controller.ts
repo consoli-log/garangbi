@@ -6,6 +6,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ConfigService } from '@nestjs/config';
+import { CompleteSocialOnboardingDto } from './dto/complete-social-onboarding.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -28,9 +29,10 @@ export class AuthController {
       return res.redirect(`${frontendUrl}/login?error=auth_failed`);
     }
 
-    const { accessToken } = await this.authService.socialLogin(req.user);
-    
-    res.redirect(`${frontendUrl}/auth/social-callback?token=${accessToken}`);
+    const { accessToken, onboardingCompleted } = await this.authService.socialLogin(req.user);
+
+    const onboardingFlag = onboardingCompleted ? '0' : '1';
+    res.redirect(`${frontendUrl}/auth/social-callback?token=${accessToken}&onboarding=${onboardingFlag}`);
   }
 
   @Get('kakao')
@@ -46,8 +48,9 @@ export class AuthController {
       return res.redirect(`${frontendUrl}/login?error=auth_failed`);
     }
 
-    const { accessToken } = await this.authService.socialLogin(req.user);
-    return res.redirect(`${frontendUrl}/auth/social-callback?token=${accessToken}`);
+    const { accessToken, onboardingCompleted } = await this.authService.socialLogin(req.user);
+    const onboardingFlag = onboardingCompleted ? '0' : '1';
+    return res.redirect(`${frontendUrl}/auth/social-callback?token=${accessToken}&onboarding=${onboardingFlag}`);
   }
 
   @Post('register')
@@ -85,5 +88,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('social-onboarding')
+  async completeSocialOnboarding(@Req() req, @Body() dto: CompleteSocialOnboardingDto) {
+    return this.authService.completeSocialOnboarding(req.user.id, dto);
   }
 }

@@ -29,8 +29,12 @@ export function SocialCallbackPage() {
       const loginAndRedirect = async () => {
         try {
           setToken(token, true);
-          await fetchUser(token);
-          navigate('/');
+          const user = await fetchUser(token);
+          if (user.onboardingCompleted) {
+            navigate('/');
+          } else {
+            navigate('/auth/social-onboarding', { replace: true });
+          }
         } catch (e) {
           notificationService.error('사용자 정보를 가져오는데 실패했습니다.');
           navigate('/login');
@@ -44,7 +48,7 @@ export function SocialCallbackPage() {
 
   return (
     <FormContainer className="text-center">
-      <p className="text-[11px] text-pixel-yellow">로그인 처리 중입니다...</p>
+      <p className="text-sm text-pixel-ink/75">로그인 처리 중입니다...</p>
     </FormContainer>
   );
 }

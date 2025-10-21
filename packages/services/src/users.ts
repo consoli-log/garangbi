@@ -20,3 +20,17 @@ export const verifyPassword = async (payload: { password: string }) => {
   const response = await httpClient.post('/users/me/verify-password', payload);
   return response.data;
 };
+
+export const deleteAccount = async (payload: { password?: string; confirm: boolean; reason?: string }) => {
+  return httpClient.delete('/users/me', {
+    data: payload,
+  });
+};
+
+export const completeSocialOnboarding = async (payload: {
+  nickname: string;
+  termsAgreed: boolean;
+  privacyAgreed: boolean;
+}) => {
+  return httpClient.post('/users/me/social-onboarding', payload);
+};

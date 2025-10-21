@@ -9,11 +9,12 @@ body {
 
 body {
   margin: 0;
-  font-family: 'Press Start 2P', 'VT323', monospace;
-  font-size: 12px;
-  line-height: 1.6;
-  background-color: #1d1f2a;
-  color: #f9c74f;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  letter-spacing: -0.01em;
+  background: linear-gradient(155deg, #fefefe 0%, #f3f5ff 55%, #f7f5ff 100%);
+  color: #101828;
 }
 
 #root {
@@ -22,33 +23,34 @@ body {
 
 @layer components {
   .pixel-box {
-    @apply rounded-none border-4 border-pixel-yellow bg-pixel-dark p-4 text-pixel-yellow shadow-pixel-md;
+    @apply relative overflow-hidden rounded-[32px] border-4 border-black bg-white p-6 text-pixel-ink shadow-pixel-md transition-transform duration-300 ease-out;
+    background-image: linear-gradient(135deg, rgba(255, 214, 10, 0.14), rgba(29, 211, 176, 0.08));
   }
 
   .pixel-box-alt {
-    @apply rounded-none border-4 border-pixel-blue bg-[#2a2d3f] p-4 text-white shadow-pixel-md;
+    @apply rounded-[32px] border-4 border-black bg-pixel-blue p-6 text-white shadow-pixel-lg transition-transform duration-300 ease-out;
   }
 
   .pixel-heading {
-    @apply text-base font-bold uppercase tracking-widest text-pixel-yellow;
+    @apply text-2xl font-black uppercase tracking-tight text-pixel-ink;
   }
 
   .pixel-text {
-    @apply text-[11px] leading-relaxed text-pixel-yellow;
+    @apply text-sm leading-relaxed text-pixel-ink/80;
   }
 
   .pixel-button {
-    @apply inline-flex items-center justify-center rounded-none border-4 border-black bg-pixel-green px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-black shadow-pixel-lg transition-transform duration-150 ease-in-out;
-    box-shadow: 6px 6px 0 0 rgba(0, 0, 0, 0.6);
+    @apply inline-flex items-center justify-center rounded-[24px] border-4 border-black bg-pixel-yellow px-6 py-3 text-sm font-semibold uppercase tracking-wider text-pixel-ink shadow-pixel-lg transition-transform duration-200 ease-out;
+    box-shadow: 14px 14px 0 0 rgba(16, 24, 40, 0.82);
   }
 
   .pixel-button:hover {
-    transform: translate(-3px, -3px);
-    box-shadow: 9px 9px 0 0 rgba(0, 0, 0, 0.7);
+    transform: translate(-6px, -6px);
+    box-shadow: 18px 18px 0 0 rgba(16, 24, 40, 0.86);
   }
 
   .pixel-button:active {
     transform: translate(0, 0);
-    box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.7);
+    box-shadow: 8px 8px 0 0 rgba(16, 24, 40, 0.7);
   }
 }

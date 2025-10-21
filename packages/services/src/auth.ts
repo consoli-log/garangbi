@@ -48,3 +48,11 @@ export const checkNicknameAvailability = async (nickname: string) => {
   );
   return response.data;
 };
+
+export const completeSocialOnboarding = async (payload: {
+  nickname: string;
+  termsAgreed: boolean;
+  privacyAgreed: boolean;
+}) => {
+  return httpClient.post('/auth/social-onboarding', payload);
+};

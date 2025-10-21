@@ -7,12 +7,15 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class RegisterDto {
   @IsEmail()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   email: string;
 
   @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @MinLength(2)
   @MaxLength(10)
   @Matches(/^[a-zA-Z0-9가-힣]+$/, {

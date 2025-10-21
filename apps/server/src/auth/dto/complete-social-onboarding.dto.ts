@@ -1,5 +1,6 @@
 import {
-  IsOptional,
+  Equals,
+  IsBoolean,
   IsString,
   Matches,
   MaxLength,
@@ -7,7 +8,7 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-export class UpdateProfileDto {
+export class CompleteSocialOnboardingDto {
   @IsString()
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @MinLength(2)
@@ -17,8 +18,11 @@ export class UpdateProfileDto {
   })
   nickname: string;
 
-  @IsOptional()
-  @IsString()
-  @MinLength(1)
-  currentPassword?: string;
+  @IsBoolean()
+  @Equals(true, { message: '서비스 이용약관에 동의해야 합니다.' })
+  termsAgreed: boolean;
+
+  @IsBoolean()
+  @Equals(true, { message: '개인정보 처리방침에 동의해야 합니다.' })
+  privacyAgreed: boolean;
 }

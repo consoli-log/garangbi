@@ -32,21 +32,22 @@ export function RequestPasswordResetPage() {
         '이메일이 존재할 경우, 비밀번호 재설정 링크를 발송했습니다.',
       );
     } catch (error) {
+      notificationService.error('비밀번호 재설정 이메일 발송 중 문제가 발생했습니다.');
     }
   };
 
   return (
     <FormContainer>
-      <h1 className="mb-3 text-base font-bold uppercase tracking-widest text-pixel-yellow">
+      <h1 className="mb-3 pixel-heading text-3xl">
         비밀번호 찾기
       </h1>
-      <p className="mb-6 text-[11px] text-pixel-yellow">
+      <p className="mb-6 text-sm text-pixel-ink/75">
         가입 시 사용한 이메일 주소를 입력해주세요.
       </p>
       <Form onSubmit={handleSubmit(onSubmit)}>
         <InputGroup>
           <label
-            className="text-[11px] font-bold uppercase text-pixel-yellow"
+            className="text-sm font-bold uppercase text-pixel-ink"
             htmlFor="email"
           >
             이메일
@@ -59,7 +60,7 @@ export function RequestPasswordResetPage() {
         </Button>
       </Form>
       <Link
-        className="mt-4 text-[11px] font-bold uppercase text-pixel-blue hover:text-pixel-yellow"
+        className="mt-4 text-sm font-bold uppercase text-pixel-blue hover:text-pixel-ink"
         to="/login"
       >
         로그인 페이지로 돌아가기

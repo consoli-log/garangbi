@@ -7,6 +7,7 @@ import { EmailVerificationPage } from './pages/auth/EmailVerificationPage';
 import { RequestPasswordResetPage } from './pages/auth/RequestPasswordResetPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { SocialCallbackPage } from './pages/auth/SocialCallbackPage';
+import { SocialOnboardingPage } from './pages/auth/SocialOnboardingPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useEffect } from 'react';
@@ -59,6 +60,7 @@ function App() {
         <Route path="/request-password-reset" element={<RequestPasswordResetPage />}/>
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/auth/social-callback" element={<SocialCallbackPage />} />
+        <Route path="/auth/social-onboarding" element={<SocialOnboardingPage />} />
         <Route path="/invitations/accept" element={<InvitationAcceptPage />} />
       </Routes>
     </BrowserRouter>

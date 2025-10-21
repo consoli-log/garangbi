@@ -13,7 +13,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     super({
       clientID: configService.get<string>('GOOGLE_CLIENT_ID'),
       clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET'),
-      callbackURL: 'http://localhost:3000/api/auth/google/callback',
+      callbackURL: configService.get<string>('GOOGLE_CALLBACK_URL'),
       scope: ['email', 'profile'],
     });
   }
@@ -53,6 +53,9 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
           email: email,
           nickname: `${name.givenName}_${Math.floor(Math.random() * 1000)}`, // 닉네임 중복 방지
           isActive: true,
+          onboardingCompleted: false,
+          termsAgreedAt: null,
+          privacyAgreedAt: null,
         },
       });
       return done(null, newUser);

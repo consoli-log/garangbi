@@ -14,6 +14,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { User } from '@prisma/client';
+import { CompleteSocialOnboardingDto } from './dto/complete-social-onboarding.dto';
 
 @Injectable()
 export class AuthService {
@@ -30,7 +31,10 @@ export class AuthService {
     const payload = { sub: userFromProvider.id, email: userFromProvider.email };
     const accessToken = this.jwtService.sign(payload);
 
-    return { accessToken };
+    return {
+      accessToken,
+      onboardingCompleted: userFromProvider.onboardingCompleted ?? true,
+    };
   }
 
   async checkEmailAvailability(email: string) {
@@ -58,33 +62,40 @@ export class AuthService {
 
     const { email, nickname, password } = registerDto;
 
+    const trimmedEmail = email.trim();
+    const trimmedNickname = nickname.trim();
+
     const existingUserByEmail = await this.prisma.user.findUnique({
-      where: { email },
+      where: { email: trimmedEmail },
     });
     if (existingUserByEmail) {
       throw new ConflictException('이미 사용 중인 이메일입니다.');
     }
 
     const existingUserByNickname = await this.prisma.user.findUnique({
-      where: { nickname },
+      where: { nickname: trimmedNickname },
     });
     if (existingUserByNickname) {
       throw new ConflictException('이미 사용 중인 닉네임입니다.');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     const emailVerificationToken = crypto.randomBytes(32).toString('hex');
     const emailVerificationExpires = new Date(Date.now() + 3600000);
+    const now = new Date();
 
     const user = await this.prisma.user.create({
       data: {
-        email,
-        nickname,
+        email: trimmedEmail,
+        nickname: trimmedNickname,
         password: hashedPassword,
         isActive: false,
         emailVerificationToken,
         emailVerificationExpires,
+        termsAgreedAt: now,
+        privacyAgreedAt: now,
+        onboardingCompleted: true,
       },
     });
 
@@ -192,5 +203,50 @@ export class AuthService {
     });
 
     return { message: '비밀번호가 성공적으로 재설정되었습니다.' };
+  }
+
+  async completeSocialOnboarding(userId: string, dto: CompleteSocialOnboardingDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    if (user.onboardingCompleted) {
+      throw new BadRequestException('이미 온보딩을 완료한 계정입니다.');
+    }
+
+    if (user.password) {
+      throw new BadRequestException('이미 비밀번호를 설정한 계정입니다.');
+    }
+
+    const trimmedNickname = dto.nickname.trim();
+
+    if (user.nickname !== trimmedNickname) {
+      const exists = await this.prisma.user.findUnique({
+        where: { nickname: trimmedNickname },
+        select: { id: true },
+      });
+
+      if (exists) {
+        throw new ConflictException('이미 사용 중인 닉네임입니다.');
+      }
+    }
+
+    const now = new Date();
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        nickname: trimmedNickname,
+        termsAgreedAt: now,
+        privacyAgreedAt: now,
+        onboardingCompleted: true,
+      },
+    });
+
+    return { success: true };
   }
 }

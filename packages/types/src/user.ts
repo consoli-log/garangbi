@@ -7,4 +7,7 @@ export interface User {
   mainLedgerId?: string | null;
   provider: string;
   hasPassword: boolean;
+  onboardingCompleted: boolean;
+  termsAgreedAt?: string | null;
+  privacyAgreedAt?: string | null;
 }

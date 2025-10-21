@@ -36,7 +36,7 @@ const STATUS_CLASS_MAP: Record<AvailabilityStatus, string> = {
 type PasswordStrength = 'weak' | 'medium' | 'strong';
 const STRENGTH_CLASS_MAP: Record<PasswordStrength, string> = {
   weak: 'text-pixel-red',
-  medium: 'text-pixel-yellow',
+  medium: 'text-pixel-ink',
   strong: 'text-pixel-green',
 };
 const STRENGTH_FILL_CLASS: Record<PasswordStrength, string> = {
@@ -174,7 +174,7 @@ export function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
-      const { confirmPassword, ...payload } = data;
+      const { confirmPassword: _confirmPassword, ...payload } = data;
       await authService.register(payload);
       notificationService.success('인증 메일이 발송되었습니다. 이메일을 확인해주세요.');
       navigate('/auth/email-notice');
@@ -187,12 +187,10 @@ export function RegisterPage() {
 
   return (
     <FormContainer>
-      <h1 className="mb-6 text-base font-bold uppercase tracking-widest text-pixel-yellow">
-        회원가입
-      </h1>
+      <h1 className="mb-6 pixel-heading text-3xl">회원가입</h1>
       <Form onSubmit={handleSubmit(onSubmit)}>
         <InputGroup>
-          <label className="text-[11px] font-bold uppercase text-pixel-yellow">
+          <label className="text-sm font-bold uppercase text-pixel-ink">
             이메일
           </label>
           <Input
@@ -210,7 +208,7 @@ export function RegisterPage() {
           />
         </InputGroup>
         <InputGroup>
-          <label className="text-[11px] font-bold uppercase text-pixel-yellow">
+          <label className="text-sm font-bold uppercase text-pixel-ink">
             닉네임
           </label>
           <Input
@@ -230,7 +228,7 @@ export function RegisterPage() {
           />
         </InputGroup>
         <InputGroup>
-          <label className="text-[11px] font-bold uppercase text-pixel-yellow">
+          <label className="text-sm font-bold uppercase text-pixel-ink">
             비밀번호
           </label>
           <Input
@@ -244,7 +242,7 @@ export function RegisterPage() {
           <PasswordStrengthMeter strength={passwordStrength} />
         </InputGroup>
         <InputGroup>
-          <label className="text-[11px] font-bold uppercase text-pixel-yellow">
+          <label className="text-sm font-bold uppercase text-pixel-ink">
             비밀번호 확인
           </label>
           <Input
@@ -257,10 +255,10 @@ export function RegisterPage() {
           )}
         </InputGroup>
         <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 text-[11px] font-bold uppercase text-pixel-yellow">
+          <label className="flex items-center gap-2 text-sm font-bold uppercase text-pixel-ink">
             <input
               type="checkbox"
-              className="h-4 w-4 border-4 border-black bg-[#1d1f2a] text-pixel-yellow focus:outline-none focus:ring-0"
+              className="h-4 w-4 rounded-[10px] border-[3px] border-black bg-white text-pixel-ink focus:outline-none focus:ring-0"
               {...formRegister('termsAgreed')}
             />
             <span>서비스 이용약관에 동의합니다.</span>
@@ -270,10 +268,10 @@ export function RegisterPage() {
           )}
         </div>
         <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 text-[11px] font-bold uppercase text-pixel-yellow">
+          <label className="flex items-center gap-2 text-sm font-bold uppercase text-pixel-ink">
             <input
               type="checkbox"
-              className="h-4 w-4 border-4 border-black bg-[#1d1f2a] text-pixel-yellow focus:outline-none focus:ring-0"
+              className="h-4 w-4 rounded-[10px] border-[3px] border-black bg-white text-pixel-ink focus:outline-none focus:ring-0"
               {...formRegister('privacyAgreed')}
             />
             <span>개인정보 처리방침에 동의합니다.</span>
@@ -296,10 +294,9 @@ function PasswordStrengthMeter({ strength }: { strength: PasswordStrength | null
       <div className="grid flex-1 grid-cols-3 gap-1">
         {levels.map((level, index) => (
           <div
-            // eslint-disable-next-line react/no-array-index-key
             key={level}
             className={cn(
-              'h-2 border-2 border-black bg-[#1d1f2a] transition-colors',
+              'h-2 border-2 border-black bg-white transition-colors',
               index <= activeIndex && STRENGTH_FILL_CLASS[level],
             )}
           />
@@ -307,8 +304,8 @@ function PasswordStrengthMeter({ strength }: { strength: PasswordStrength | null
       </div>
       <span
         className={cn(
-          'text-[10px] font-bold uppercase tracking-widest',
-          strength ? STRENGTH_CLASS_MAP[strength] : 'text-pixel-yellow/70',
+          'text-xs font-bold uppercase tracking-widest',
+          strength ? STRENGTH_CLASS_MAP[strength] : 'text-pixel-ink/70',
         )}
       >
         {strength ? `안전도: ${STRENGTH_LABEL_MAP[strength]}` : '비밀번호를 입력해주세요'}
@@ -327,7 +324,7 @@ function AvailabilityStatusMessage({
   return (
     <p
       className={cn(
-        'min-h-[1.25rem] text-[10px] font-bold uppercase transition',
+        'min-h-[1.25rem] text-xs font-bold uppercase transition',
         STATUS_CLASS_MAP[status],
       )}
     >

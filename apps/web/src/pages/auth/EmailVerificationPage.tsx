@@ -36,10 +36,8 @@ export function EmailVerificationPage() {
 
   return (
     <FormContainer className="gap-4 text-center">
-      <h1 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
-        이메일 인증
-      </h1>
-      <p className="max-w-md text-[11px] text-pixel-yellow">{message}</p>
+      <h1 className="pixel-heading text-3xl">이메일 인증</h1>
+      <p className="max-w-md text-sm text-pixel-ink/75">{message}</p>
     </FormContainer>
   );
 }

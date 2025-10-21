@@ -35,20 +35,20 @@ export function InvitationAcceptPage() {
 
   const containerClass =
     'flex min-h-screen items-center justify-center bg-pixel-dark px-6 py-10';
-  const cardClass = 'pixel-box w-full max-w-md bg-[#2a2d3f] text-center';
+  const cardClass = 'pixel-box w-full max-w-md text-center';
   const primaryButtonClass =
-    'pixel-button w-full bg-pixel-green text-black hover:text-black disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
+    'pixel-button w-full bg-pixel-green text-pixel-ink hover:text-pixel-ink disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-300 disabled:text-gray-500';
   const secondaryButtonClass =
-    'pixel-button w-full bg-pixel-red text-white hover:text-white disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
+    'pixel-button w-full bg-pixel-red text-white hover:text-white disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-300 disabled:text-gray-500';
 
   if (!token) {
     return (
       <div className={containerClass}>
         <div className={cardClass}>
-          <h1 className="mb-4 text-base font-bold uppercase tracking-widest text-pixel-yellow">
+          <h1 className="mb-4 pixel-heading text-3xl">
             유효하지 않은 초대
           </h1>
-          <p className="text-[11px] text-pixel-yellow">
+          <p className="text-sm text-pixel-ink">
             초대 토큰이 확인되지 않았습니다. 초대 링크를 다시 확인해주세요.
           </p>
         </div>
@@ -60,10 +60,10 @@ export function InvitationAcceptPage() {
     return (
       <div className={containerClass}>
         <div className={cardClass}>
-          <h1 className="mb-4 text-base font-bold uppercase tracking-widest text-pixel-yellow">
+          <h1 className="mb-4 pixel-heading text-3xl">
             로그인이 필요합니다
           </h1>
-          <p className="mb-6 text-[11px] text-pixel-yellow">
+          <p className="mb-6 text-sm text-pixel-ink">
             가계부 초대를 수락하려면 먼저 로그인해주세요.
           </p>
           <button
@@ -81,10 +81,10 @@ export function InvitationAcceptPage() {
   return (
     <div className={containerClass}>
       <div className={cardClass}>
-        <h1 className="mb-4 text-base font-bold uppercase tracking-widest text-pixel-yellow">
+        <h1 className="mb-4 pixel-heading text-3xl">
           가계부 초대
         </h1>
-        <p className="mb-6 text-[11px] text-pixel-yellow">초대를 수락하시겠습니까?</p>
+        <p className="mb-6 text-sm text-pixel-ink">초대를 수락하시겠습니까?</p>
         <div className="flex flex-col gap-3 md:flex-row md:justify-center">
           <button
             type="button"

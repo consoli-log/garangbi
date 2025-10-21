@@ -20,8 +20,18 @@ import {
   LedgerMemberRole,
 } from '@garangbi/types';
 import { cn } from '../../lib/cn';
+import { useNavigate } from 'react-router-dom';
 
 const currencyOptions = ['KRW', 'USD', 'JPY'];
+
+const deleteReasonOptions = [
+  { value: '', label: '선택하지 않음' },
+  { value: 'not-useful', label: '필요한 기능이 부족해요' },
+  { value: 'complex', label: '사용하기 어려워요' },
+  { value: 'bugs', label: '버그나 오류가 많아요' },
+  { value: 'other-service', label: '다른 서비스를 이용하고 있어요' },
+  { value: 'etc', label: '기타' },
+];
 
 const createLedgerSchema = z.object({
   name: z.string().min(1, '가계부 이름을 입력해주세요.'),
@@ -81,12 +91,19 @@ type SentInvitationMap = Record<string, LedgerInvitationSummary[]>;
 export function MyPage() {
   const { user, fetchUser, logout } = useAuthStore();
   const requiresPassword = Boolean(user?.hasPassword);
+  const navigate = useNavigate();
 
   const [isReauthCompleted, setIsReauthCompleted] = useState(!requiresPassword);
   const [showReauthModal, setShowReauthModal] = useState(false);
   const [hasPromptedReauth, setHasPromptedReauth] = useState(false);
   const [reauthError, setReauthError] = useState<string | null>(null);
   const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState('');
+  const [deleteAccountConfirm, setDeleteAccountConfirm] = useState(false);
+  const [deleteAccountReason, setDeleteAccountReason] = useState('');
+  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const [activeTab, setActiveTab] = useState<MyPageTab>('profile');
   const [ledgers, setLedgers] = useState<LedgerSummary[]>([]);
@@ -373,6 +390,53 @@ export function MyPage() {
     }
   };
 
+  const openDeleteAccountDialog = () => {
+    setShowDeleteAccountModal(true);
+    setDeleteAccountPassword('');
+    setDeleteAccountConfirm(false);
+    setDeleteAccountReason('');
+    setDeleteAccountError(null);
+  };
+
+  const closeDeleteAccountDialog = () => {
+    setShowDeleteAccountModal(false);
+    setDeleteAccountPassword('');
+    setDeleteAccountConfirm(false);
+    setDeleteAccountReason('');
+    setDeleteAccountError(null);
+    setIsDeletingAccount(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (requiresPassword && !deleteAccountPassword) {
+      setDeleteAccountError('현재 비밀번호를 입력해주세요.');
+      return;
+    }
+
+    if (!deleteAccountConfirm) {
+      setDeleteAccountError('탈퇴 동의 체크박스를 선택해주세요.');
+      return;
+    }
+
+    try {
+      setIsDeletingAccount(true);
+      await usersService.deleteAccount({
+        password: requiresPassword ? deleteAccountPassword : undefined,
+        confirm: true,
+        reason: deleteAccountReason || undefined,
+      });
+      notificationService.success('회원 탈퇴가 완료되었습니다. 이용해주셔서 감사합니다.');
+      logout();
+      closeDeleteAccountDialog();
+      navigate('/login', { replace: true });
+    } catch (error: any) {
+      const message = error?.response?.data?.message ?? '회원 탈퇴 처리 중 오류가 발생했습니다.';
+      setDeleteAccountError(message);
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
   const handleUpdateLedger = async (
     ledgerId: string,
     payload: Partial<CreateLedgerForm>,
@@ -489,30 +553,29 @@ export function MyPage() {
 
   const tabButtonClass = (isActive: boolean) =>
     cn(
-      'rounded-none border-4 border-black px-4 py-2 text-[11px] font-bold uppercase tracking-widest shadow-pixel-sm transition hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-pixel-md focus:outline-none',
-      isActive ? 'bg-pixel-purple text-white' : 'bg-[#31344c] text-pixel-yellow',
+      'rounded-[18px] border-4 border-black px-5 py-3 text-sm font-semibold uppercase tracking-wider text-pixel-ink shadow-pixel-sm transition-transform duration-200 ease-out hover:-translate-x-1 hover:-translate-y-1 hover:shadow-pixel-md focus:outline-none',
+      isActive ? 'bg-pixel-blue text-white' : 'bg-white text-pixel-ink/70',
     );
 
   const inputClass =
-    'w-full rounded-none border-4 border-black bg-[#1d1f2a] px-4 py-3 text-[11px] uppercase tracking-wide text-pixel-yellow shadow-pixel-sm focus:border-pixel-blue focus:outline-none';
+    'w-full rounded-[22px] border-4 border-black bg-white px-5 py-3 text-base font-semibold text-pixel-ink shadow-pixel-sm transition-transform duration-200 ease-out placeholder:text-pixel-ink/35 focus:-translate-x-1 focus:-translate-y-1 focus:border-pixel-blue focus:shadow-pixel-md focus:outline-none';
   const primaryButtonClass =
-    'inline-flex items-center justify-center rounded-none border-4 border-black bg-pixel-blue px-5 py-3 text-[11px] font-bold uppercase tracking-widest text-black shadow-pixel-md transition hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-pixel-lg disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
+    'pixel-button bg-pixel-blue text-white hover:text-white disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none';
   const subtleButtonClass =
-    'inline-flex items-center justify-center rounded-none border-4 border-black bg-[#31344c] px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-pixel-yellow shadow-pixel-sm transition hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-pixel-md disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
+    'pixel-button px-4 py-2 bg-white text-pixel-ink hover:text-pixel-ink shadow-pixel-sm disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-200 disabled:text-gray-500 disabled:shadow-none';
   const dangerButtonClass =
-    'inline-flex items-center justify-center rounded-none border-4 border-black bg-pixel-red px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-pixel-sm transition hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-pixel-md disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-600 disabled:text-gray-300';
-  const sectionCardClass = 'pixel-box bg-[#2a2d3f]';
-  const sectionTitleClass = 'pixel-heading text-pixel-yellow';
-  const labelClass = 'text-[11px] font-bold uppercase text-pixel-yellow';
-  const errorTextClass = 'text-[10px] font-bold uppercase text-pixel-red';
-  const helperTextClass = 'text-[10px] text-pixel-yellow';
-  const emptyStateClass =
-    'pixel-box bg-[#23263a] text-center text-[11px] text-pixel-yellow';
+    'pixel-button px-4 py-2 bg-pixel-red text-white hover:text-white shadow-pixel-sm disabled:translate-x-0 disabled:translate-y-0 disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none';
+  const sectionCardClass = 'pixel-box';
+  const sectionTitleClass = 'pixel-heading text-pixel-ink';
+  const labelClass = 'text-sm font-semibold uppercase text-pixel-ink';
+  const errorTextClass = 'text-xs font-semibold uppercase text-pixel-red';
+  const helperTextClass = 'text-xs text-pixel-ink/60';
+  const emptyStateClass = 'pixel-box text-center text-sm text-pixel-ink';
 
   if (isInitialLoading) {
     return (
       <div className="flex flex-col gap-6">
-        <div className="pixel-box bg-[#2a2d3f] text-center text-[11px] text-pixel-yellow">
+        <div className="pixel-box text-center text-sm text-pixel-ink">
           내 정보를 불러오는 중입니다...
         </div>
       </div>
@@ -529,14 +592,14 @@ export function MyPage() {
         onLogout={handleForceLogout}
       />
 
-      <div className="pixel-box bg-[#23263a]">
-        <h1 className="pixel-heading text-pixel-yellow">마이페이지</h1>
-        <p className="mt-2 text-[11px] text-pixel-yellow">
+      <div className="pixel-box">
+        <h1 className="pixel-heading text-3xl">마이페이지</h1>
+        <p className="mt-2 text-sm text-pixel-ink/75">
           프로필과 가계부, 초대를 관리할 수 있습니다.
         </p>
       </div>
 
-      <div className="inline-flex items-center gap-2 rounded-none border-4 border-black bg-[#2f3151] p-1">
+      <div className="inline-flex items-center gap-2 rounded-[24px] border-4 border-black bg-white p-1">
         <button
           type="button"
           className={tabButtonClass(activeTab === 'profile')}
@@ -565,13 +628,13 @@ export function MyPage() {
           <div className={sectionCardClass}>
             <h2 className={sectionTitleClass}>내 정보</h2>
             <ul className="mt-4 flex flex-col gap-3">
-              <li className="flex items-center justify-between border-4 border-black bg-[#1d1f2a] px-4 py-3 text-[11px] text-pixel-yellow shadow-pixel-sm">
+              <li className="flex items-center justify-between border-4 border-black bg-white px-4 py-3 text-sm text-pixel-ink shadow-pixel-sm">
                 <span>이메일</span>
-                <strong className="text-pixel-yellow">{user?.email}</strong>
+                <strong className="text-pixel-ink">{user?.email}</strong>
               </li>
-              <li className="flex items-center justify-between border-4 border-black bg-[#1d1f2a] px-4 py-3 text-[11px] text-pixel-yellow shadow-pixel-sm">
+              <li className="flex items-center justify-between border-4 border-black bg-white px-4 py-3 text-sm text-pixel-ink shadow-pixel-sm">
                 <span>닉네임</span>
-                <strong className="text-pixel-yellow">
+                <strong className="text-pixel-ink">
                   {user?.nickname ?? '미설정'}
                 </strong>
               </li>
@@ -672,14 +735,33 @@ export function MyPage() {
               {isPasswordSubmitting ? '변경 중...' : '비밀번호 변경'}
             </button>
           </form>
+
+          <div className={cn(sectionCardClass, 'flex flex-col gap-4 lg:col-span-2 border-pixel-red/70')}>
+            <div className="flex items-center justify-between">
+              <h2 className={sectionTitleClass}>회원 탈퇴</h2>
+              <span className="rounded-full bg-pixel-red px-3 py-1 text-xs font-semibold uppercase text-white">
+                주의
+              </span>
+            </div>
+            <p className="text-sm text-pixel-ink/75">
+              탈퇴를 진행하면 모든 가계부와 거래 내역이 즉시 삭제되며 복구할 수 없습니다. 다시 가입하더라도 데이터는 복원되지 않습니다.
+            </p>
+            <button
+              type="button"
+              className={cn(dangerButtonClass, 'self-start px-5 py-2 text-sm')}
+              onClick={openDeleteAccountDialog}
+            >
+              회원 탈퇴 진행하기
+            </button>
+          </div>
         </div>
       )}
 
       {activeTab === 'ledgers' && (
         <div className="flex flex-col gap-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 text-pixel-yellow">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-pixel-ink">
             <h2 className={sectionTitleClass}>보유 가계부</h2>
-            <span className="text-[11px] font-bold uppercase">{ledgers.length}개</span>
+            <span className="text-sm font-bold uppercase">{ledgers.length}개</span>
           </div>
           {ledgers.length === 0 ? (
             <div className={emptyStateClass}>
@@ -690,17 +772,17 @@ export function MyPage() {
               {ledgers.map((ledger) => (
                 <div
                   key={ledger.id}
-                  className={cn('pixel-box bg-[#23263a] transition', {
+                  className={cn('pixel-box transition', {
                     'border-pixel-blue shadow-pixel-lg': ledger.isMain,
                     'border-pixel-purple hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-pixel-md':
                       !ledger.isMain,
                   })}
                 >
                   <div className="flex items-center justify-between">
-                    <h3 className="text-[12px] font-bold uppercase tracking-widest text-pixel-yellow">
+                    <h3 className="pixel-heading text-xl">
                       {ledger.name}
                     </h3>
-                    <span className="rounded-none border-4 border-black bg-pixel-blue px-2 py-1 text-[10px] font-bold text-black shadow-pixel-sm">
+                    <span className="rounded-[14px] border-4 border-black bg-pixel-blue px-3 py-1 text-xs font-bold uppercase text-white shadow-pixel-sm">
                       {ledger.role === LedgerMemberRole.OWNER
                         ? '소유자'
                         : ledger.role === LedgerMemberRole.EDITOR
@@ -708,9 +790,9 @@ export function MyPage() {
                         : '읽기'}
                     </span>
                   </div>
-                  <div className="mt-3 flex flex-col gap-2 text-[11px] text-pixel-yellow">
+                  <div className="mt-3 flex flex-col gap-2 text-sm text-pixel-ink">
                     <p>{ledger.description || '설명 없음'}</p>
-                    <div className="flex flex-wrap gap-3 text-[10px] font-bold uppercase text-pixel-yellow/80">
+                    <div className="flex flex-wrap gap-3 text-xs font-bold uppercase text-pixel-ink/80">
                       <span>통화: {ledger.currency}</span>
                       <span>정산 기준일: 매월 {ledger.monthStartDay}일</span>
                       <span>멤버: {ledger.memberCount}명</span>
@@ -823,9 +905,9 @@ export function MyPage() {
 
       {activeTab === 'invitations' && (
         <div className="flex flex-col gap-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 text-pixel-yellow">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-pixel-ink">
             <h2 className={sectionTitleClass}>보낸 초대</h2>
-            <span className="text-[11px] font-bold uppercase">
+            <span className="text-sm font-bold uppercase">
               {selectedLedgerInvitations.length}건{' '}
               {selectedLedgerId
                 ? `(${
@@ -869,13 +951,13 @@ export function MyPage() {
                     {selectedLedgerInvitations.map((invitation) => (
                       <div
                         key={invitation.id}
-                        className="flex flex-col gap-3 border-4 border-black bg-[#1d1f2a] px-4 py-3 text-[11px] text-pixel-yellow shadow-pixel-sm md:flex-row md:items-center md:justify-between"
+                        className="flex flex-col gap-3 border-4 border-black bg-white px-4 py-3 text-sm text-pixel-ink shadow-pixel-sm md:flex-row md:items-center md:justify-between"
                       >
                         <div>
-                          <div className="text-[11px] font-bold uppercase text-pixel-yellow">
+                          <div className="text-sm font-bold uppercase text-pixel-ink">
                             {invitation.email}
                           </div>
-                          <div className="mt-1 text-[10px] uppercase text-pixel-yellow/80">
+                          <div className="mt-1 text-xs uppercase text-pixel-ink/80">
                             {invitation.role === LedgerMemberRole.EDITOR
                               ? '편집 권한'
                               : invitation.role === LedgerMemberRole.OWNER
@@ -947,9 +1029,9 @@ export function MyPage() {
 
           <div className="border-t-4 border-dashed border-pixel-yellow/40" />
 
-          <div className="flex flex-wrap items-center justify-between gap-3 text-pixel-yellow">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-pixel-ink">
             <h2 className={sectionTitleClass}>받은 초대</h2>
-            <span className="text-[11px] font-bold uppercase">{receivedInvitations.length}건</span>
+            <span className="text-sm font-bold uppercase">{receivedInvitations.length}건</span>
           </div>
           {receivedInvitations.length === 0 ? (
             <div className={emptyStateClass}>받은 초대가 없습니다.</div>
@@ -958,13 +1040,13 @@ export function MyPage() {
               {receivedInvitations.map((invitation) => (
                 <div
                   key={invitation.id}
-                  className="flex flex-col gap-3 border-4 border-black bg-[#23263a] p-6 text-pixel-yellow shadow-pixel-md md:flex-row md:items-center md:justify-between"
+                  className="pixel-box flex flex-col gap-3 text-pixel-ink md:flex-row md:items-center md:justify-between"
                 >
                   <div>
-                    <h3 className="text-[12px] font-bold uppercase tracking-widest text-pixel-yellow">
+                    <h3 className="pixel-heading text-xl">
                       {invitation.ledger.name}
                     </h3>
-                    <p className="mt-1 text-[11px] text-pixel-yellow">
+                    <p className="mt-1 text-sm text-pixel-ink">
                       {invitation.invitedBy.nickname ?? invitation.invitedBy.email} 님이{' '}
                       {invitation.role === LedgerMemberRole.VIEWER
                         ? '읽기 전용'
@@ -997,15 +1079,90 @@ export function MyPage() {
         </div>
       )}
 
+      {showDeleteAccountModal ? (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-[#05060c]/70 px-4 py-6">
+          <div className="pixel-box w-full max-w-lg text-pixel-ink">
+            <h3 className="pixel-heading text-2xl">회원 탈퇴</h3>
+            <p className="mt-2 text-sm text-pixel-ink/75">
+              탈퇴하면 모든 가계부와 거래 내역이 영구적으로 삭제되며 복구할 수 없습니다. 정말로 진행하시겠습니까?
+            </p>
+            {requiresPassword ? (
+              <div className="mt-4 flex flex-col gap-2">
+                <label className={labelClass}>현재 비밀번호</label>
+                <input
+                  className={inputClass}
+                  type="password"
+                  value={deleteAccountPassword}
+                  onChange={(event) => {
+                    setDeleteAccountPassword(event.target.value);
+                    setDeleteAccountError(null);
+                  }}
+                  placeholder="현재 비밀번호"
+                />
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-pixel-ink/60">
+                소셜 로그인 계정은 비밀번호 입력 없이 탈퇴할 수 있습니다.
+              </p>
+            )}
+            <div className="mt-4 flex flex-col gap-2">
+              <label className={labelClass}>탈퇴 사유 (선택)</label>
+              <select
+                className={inputClass}
+                value={deleteAccountReason}
+                onChange={(event) => {
+                  setDeleteAccountReason(event.target.value);
+                  setDeleteAccountError(null);
+                }}
+              >
+                {deleteReasonOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <label className="mt-4 flex items-start gap-3 text-sm text-pixel-ink">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 rounded-[10px] border-[3px] border-black bg-white text-pixel-ink focus:outline-none focus:ring-0"
+                checked={deleteAccountConfirm}
+                onChange={(event) => {
+                  setDeleteAccountConfirm(event.target.checked);
+                  setDeleteAccountError(null);
+                }}
+              />
+              <span>위 내용을 모두 확인했으며, 탈퇴에 동의합니다.</span>
+            </label>
+            {deleteAccountError ? (
+              <p className={cn(errorTextClass, 'mt-3')}>{deleteAccountError}</p>
+            ) : null}
+            <div className="mt-6 flex justify-end gap-3">
+              <button type="button" className={subtleButtonClass} onClick={closeDeleteAccountDialog}>
+                취소
+              </button>
+              <button
+                type="button"
+                className={dangerButtonClass}
+                onClick={handleDeleteAccount}
+                disabled={isDeletingAccount}
+              >
+                {isDeletingAccount ? '탈퇴 중...' : '탈퇴하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {ledgerToDelete && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#05060c]/80 px-4">
-          <div className="w-full max-w-md border-4 border-black bg-[#2a2d3f] p-6 text-pixel-yellow shadow-pixel-lg">
-            <h3 className="text-base font-bold uppercase tracking-widest text-pixel-yellow">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#05060c]/70 px-4">
+          <div className="pixel-box w-full max-w-md text-pixel-ink">
+            <h3 className="text-base font-bold uppercase tracking-widest text-pixel-ink">
               가계부 삭제
             </h3>
-            <p className="mt-2 text-[11px] leading-relaxed text-pixel-yellow">
+            <p className="mt-2 text-sm leading-relaxed text-pixel-ink">
               가계부{' '}
-              <strong className="font-bold text-pixel-yellow">
+              <strong className="font-bold text-pixel-ink">
                 {ledgerToDelete.name}
               </strong>
               을(를) 삭제하려면 동일한 이름을 입력해주세요. 삭제된 가계부는 되돌릴 수 없습니다.

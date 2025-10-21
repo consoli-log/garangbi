@@ -70,6 +70,9 @@ export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
           email,
           nickname: nicknameCandidate,
           isActive: true,
+          onboardingCompleted: false,
+          termsAgreedAt: null,
+          privacyAgreedAt: null,
         },
       });
 

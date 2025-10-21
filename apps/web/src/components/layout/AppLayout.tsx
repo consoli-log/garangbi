@@ -17,19 +17,19 @@ export function AppLayout() {
 
   const navLinkClass = (isActive: boolean) =>
     cn(
-      'rounded-none border-4 border-black bg-[#31344c] px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-pixel-yellow shadow-pixel-sm transition hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-pixel-md',
-      isActive && 'bg-pixel-purple text-white',
+      'rounded-[18px] border-4 border-black bg-white px-5 py-3 text-sm font-semibold uppercase tracking-wider text-pixel-ink shadow-pixel-sm transition-transform duration-200 ease-out hover:-translate-x-1 hover:-translate-y-1 hover:shadow-pixel-md',
+      isActive && 'bg-pixel-blue text-white',
     );
 
   return (
-    <div className="min-h-screen bg-pixel-dark text-pixel-yellow">
-      <header className="sticky top-0 z-40 border-b-4 border-black bg-[#1f2230] px-6 py-4 shadow-pixel-md">
+    <div className="min-h-screen bg-pixel-dark text-pixel-ink">
+      <header className="sticky top-0 z-40 border-b-4 border-black bg-white/90 px-6 py-4 shadow-pixel-md backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="rounded-none border-4 border-black bg-pixel-yellow px-4 py-3 text-[12px] font-bold uppercase tracking-[0.4em] text-black shadow-pixel-md transition hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-pixel-lg"
+              className="rounded-[22px] border-4 border-black bg-pixel-yellow px-6 py-3 text-sm font-extrabold uppercase tracking-[0.3em] text-pixel-ink shadow-pixel-md transition-transform duration-200 ease-out hover:-translate-x-1.5 hover:-translate-y-1.5 hover:shadow-pixel-lg"
             >
               Garanbi Pixel Budget
             </button>
@@ -50,8 +50,8 @@ export function AppLayout() {
             </NavLink>
           </nav>
 
-          <div className="flex flex-col gap-2 text-[11px] uppercase text-pixel-yellow md:flex-row md:items-center md:gap-4">
-            {user ? <span className="text-xs text-pixel-yellow">{user.nickname ?? user.email}</span> : null}
+          <div className="flex flex-col gap-2 text-sm font-semibold uppercase text-pixel-ink md:flex-row md:items-center md:gap-4">
+            {user ? <span className="text-xs text-pixel-ink/60">{user.nickname ?? user.email}</span> : null}
             <button
               type="button"
               onClick={handleLogout}

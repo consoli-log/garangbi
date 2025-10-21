@@ -23,6 +23,9 @@ model User {
   provider                 String    @default("local")
   providerId               String?   @unique
   mainLedgerId             String?
+  termsAgreedAt            DateTime?
+  privacyAgreedAt          DateTime?
+  onboardingCompleted      Boolean   @default(true)
 
   mainLedger          Ledger?                  @relation("UserMainLedger", fields: [mainLedgerId], references: [id])
   ledgerMemberships   LedgerMember[]
