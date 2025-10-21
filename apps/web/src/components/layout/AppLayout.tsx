@@ -48,6 +48,12 @@ export function AppLayout() {
             >
               가계부 구성
             </NavLink>
+            <NavLink
+              to="/transactions"
+              className={({ isActive }) => navLinkClass(Boolean(isActive))}
+            >
+              거래 관리
+            </NavLink>
           </nav>
 
           <div className="flex flex-col gap-2 text-sm font-semibold uppercase text-pixel-ink md:flex-row md:items-center md:gap-4">

@@ -44,6 +44,20 @@ export interface TransactionAttachment {
   createdAt: string;
 }
 
+export interface TransactionComment {
+  id: string;
+  transactionId: string;
+  userId: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    nickname: string;
+    email: string;
+  };
+}
+
 export interface Transaction {
   id: string;
   ledgerId: string;
@@ -66,4 +80,5 @@ export interface Transaction {
   splits?: TransactionSplit[];
   tags?: Tag[];
   attachments?: TransactionAttachment[];
+  comments?: TransactionComment[];
 }

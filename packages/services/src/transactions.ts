@@ -48,11 +48,19 @@ export interface TransactionQuery {
   includeAttachments?: boolean;
 }
 
+export interface TransactionListResponse {
+  items: Transaction[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 export const listTransactions = async (
   ledgerId: string,
   query?: TransactionQuery,
 ) => {
-  const response = await httpClient.get<Transaction[]>(
+  const response = await httpClient.get<TransactionListResponse>(
     `/ledgers/${ledgerId}/transactions`,
     { params: query },
   );
@@ -70,19 +78,62 @@ export const createTransaction = async (
   return response.data;
 };
 
+export const getTransaction = async (ledgerId: string, transactionId: string) => {
+  const response = await httpClient.get<Transaction>(
+    `/ledgers/${ledgerId}/transactions/${transactionId}`,
+  );
+  return response.data;
+};
+
 export const updateTransaction = async (
+  ledgerId: string,
   transactionId: string,
   payload: UpdateTransactionPayload,
 ) => {
   const response = await httpClient.patch<Transaction>(
-    `/transactions/${transactionId}`,
+    `/ledgers/${ledgerId}/transactions/${transactionId}`,
     payload,
   );
   return response.data;
 };
 
-export const deleteTransaction = async (transactionId: string) => {
-  await httpClient.delete(`/transactions/${transactionId}`);
+export const deleteTransaction = async (ledgerId: string, transactionId: string) => {
+  await httpClient.delete(`/ledgers/${ledgerId}/transactions/${transactionId}`);
+};
+
+export const createComment = async (
+  ledgerId: string,
+  transactionId: string,
+  payload: { content: string },
+) => {
+  const response = await httpClient.post(
+    `/ledgers/${ledgerId}/transactions/${transactionId}/comments`,
+    payload,
+  );
+  return response.data;
+};
+
+export const updateComment = async (
+  ledgerId: string,
+  transactionId: string,
+  commentId: string,
+  payload: { content: string },
+) => {
+  const response = await httpClient.patch(
+    `/ledgers/${ledgerId}/transactions/${transactionId}/comments/${commentId}`,
+    payload,
+  );
+  return response.data;
+};
+
+export const deleteComment = async (
+  ledgerId: string,
+  transactionId: string,
+  commentId: string,
+) => {
+  await httpClient.delete(
+    `/ledgers/${ledgerId}/transactions/${transactionId}/comments/${commentId}`,
+  );
 };
 
 export interface CreateRecurringRulePayload {

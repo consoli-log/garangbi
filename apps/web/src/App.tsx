@@ -18,6 +18,7 @@ import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { LedgerManagementPage } from './pages/ledger/LedgerManagementPage';
+import { TransactionsPage } from './pages/transactions/TransactionsPage';
 
 function App() {
   const initializeAuth = useAuthStore((state) => state.initialize);
@@ -52,6 +53,7 @@ function App() {
           <Route index element={<DashboardPage />} />
           <Route path="mypage" element={<MyPage />} />
           <Route path="ledgers/manage" element={<LedgerManagementPage />} />
+          <Route path="transactions" element={<TransactionsPage />} />
         </Route>
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
