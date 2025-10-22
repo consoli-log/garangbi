@@ -70,6 +70,12 @@ interface AssetOption {
   groupName: string;
 }
 
+interface AssetGroupOption {
+  id: string;
+  name: string;
+  assets: AssetOption[];
+}
+
 const TYPE_OPTIONS: { label: string; value: TransactionType }[] = [
   { label: '수입', value: TransactionType.INCOME },
   { label: '지출', value: TransactionType.EXPENSE },
@@ -148,9 +154,9 @@ export function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [assets, setAssets] = useState<AssetOption[]>([]);
+  const [assetGroups, setAssetGroups] = useState<AssetGroupOption[]>([]);
   const [categories, setCategories] = useState<CategoryNode[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
-  const [hasShownAttachmentNotice, setHasShownAttachmentNotice] = useState(false);
 
   const form = useForm<TransactionFormValues>({
     defaultValues: {
@@ -234,7 +240,7 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
     const loadLedgerData = async () => {
       setIsLoading(true);
       try {
-        const [assetGroups, categoryTree, listResponse] = await Promise.all([
+        const [assetGroupResponse, categoryTree, listResponse] = await Promise.all([
           ledgerService.getAssetGroups(ledgerId),
           ledgerService.getCategories(ledgerId),
           transactionsService.listTransactions(ledgerId, {
@@ -244,16 +250,18 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
           }),
         ]);
 
-        const assetOptions: AssetOption[] = assetGroups
-          .flatMap((group) =>
-            group.assets.map((asset) => ({
-              id: asset.id,
-              name: asset.name,
-              groupName: group.name,
-            })),
-          )
-          .sort((a, b) => a.groupName.localeCompare(b.groupName));
+        const groupOptions: AssetGroupOption[] = assetGroupResponse.map((group) => ({
+          id: group.id,
+          name: group.name,
+          assets: group.assets.map((asset) => ({
+            id: asset.id,
+            name: asset.name,
+            groupName: group.name,
+          })),
+        }));
+        const assetOptions: AssetOption[] = groupOptions.flatMap((group) => group.assets);
 
+        setAssetGroups(groupOptions);
         setAssets(assetOptions);
         setCategories([
           ...flattenCategoryTree(categoryTree.income),
@@ -279,10 +287,14 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
 
   useEffect(() => {
     const currentAssetId = getValues('assetId');
-    if (!currentAssetId && assets.length) {
-      setValue('assetId', assets[0].id);
+    if (currentAssetId) {
+      return;
     }
-  }, [assets, getValues, setValue]);
+    const fallbackAssetId = assetGroups[0]?.assets[0]?.id ?? assets[0]?.id;
+    if (fallbackAssetId) {
+      setValue('assetId', fallbackAssetId);
+    }
+  }, [assetGroups, assets, getValues, setValue]);
 
   const groupedTransactions = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
 
@@ -325,7 +337,7 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
       type: TransactionType.EXPENSE,
       transactionDate: getTodayDateTime(),
       amount: '',
-      assetId: assets[0]?.id ?? '',
+      assetId: assetGroups[0]?.assets[0]?.id ?? assets[0]?.id ?? '',
       relatedAssetId: null,
       categoryId: undefined,
       memo: '',
@@ -396,7 +408,7 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
         splits: cleanedSplits.length ? cleanedSplits : undefined,
       });
 
-      toast.success('거래가 성공적으로 저장되었습니다.');
+      toast.success('거래가 성공적으로 저장되었습니다.', { autoClose: 2000 });
       clearAttachmentPreviews(values.attachments);
       setIsSplitMode(false);
       handleCloseForm();
@@ -418,20 +430,47 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
       return;
     }
 
-    const current = [...attachmentsValue];
-    const limitExceeded = current.length + files.length > 5;
-    if (limitExceeded) {
-      toast.warn('이미지는 최대 5개까지 첨부할 수 있습니다.');
+    const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/heic', 'image/heif']);
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.heic', '.heif'];
+
+    const { validFiles, invalidFiles } = Array.from(files).reduce(
+      (acc, file) => {
+        const mime = (file.type || '').toLowerCase();
+        const filename = file.name.toLowerCase();
+        const mimeAllowed = allowedMimeTypes.has(mime);
+        const extensionAllowed = allowedExtensions.some((ext) => filename.endsWith(ext));
+        if (mimeAllowed || extensionAllowed) {
+          acc.validFiles.push(file);
+        } else {
+          acc.invalidFiles.push(file);
+        }
+        return acc;
+      },
+      { validFiles: [] as File[], invalidFiles: [] as File[] },
+    );
+
+    if (invalidFiles.length) {
+      toast.warn('지원하지 않는 이미지 형식이 제외되었습니다. JPG, PNG, HEIC만 업로드할 수 있습니다.');
+    }
+
+    if (!validFiles.length) {
       event.target.value = '';
       return;
     }
 
-    if (!hasShownAttachmentNotice) {
-      toast.info('이미지 업로드는 추후 지원 예정입니다. 현재는 미리보기만 제공합니다.');
-      setHasShownAttachmentNotice(true);
+    const remainingSlots = Math.max(0, 5 - attachmentsValue.length);
+    if (remainingSlots <= 0) {
+      toast.warn('이미지는 최대 5개까지 첨부할 수 있습니다. 기존 이미지를 삭제해주세요.');
+      event.target.value = '';
+      return;
     }
 
-    const previews: AttachmentPreview[] = Array.from(files).map((file) => ({
+    const acceptedFiles = validFiles.slice(0, remainingSlots);
+    if (acceptedFiles.length < validFiles.length) {
+      toast.warn('이미지는 최대 5개까지 첨부할 수 있습니다. 일부 파일이 제외되었습니다.');
+    }
+
+    const previews: AttachmentPreview[] = acceptedFiles.map((file) => ({
       id: crypto.randomUUID(),
       file,
       previewUrl: URL.createObjectURL(file),
@@ -440,7 +479,7 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
       name: file.name,
     }));
 
-    setValue('attachments', [...current, ...previews], { shouldDirty: true });
+    setValue('attachments', [...attachmentsValue, ...previews], { shouldDirty: true });
     event.target.value = '';
   };
 
@@ -542,6 +581,7 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
         <FilterPanel
           filters={filters}
           onChange={setFilters}
+          assetGroups={assetGroups}
           assets={assets}
           categories={categories}
           tagOptions={tags}
@@ -586,9 +626,10 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
           onFillSplitAmount={handleFillSplitAmount}
           amountValue={amountValue}
           amountFormatted={formatCurrency(amountValue || 0)}
-          assets={assets}
+          assetGroups={assetGroups}
           categories={categories}
           typeValue={typeValue}
+          availableTags={tags}
           attachments={attachmentsValue}
           onFileSelect={handleFileSelect}
           onRemoveAttachment={removeAttachment}
@@ -618,12 +659,20 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
 interface FilterPanelProps {
   filters: FilterState;
   onChange: (filters: FilterState) => void;
+  assetGroups: AssetGroupOption[];
   assets: AssetOption[];
   categories: CategoryNode[];
   tagOptions: Tag[];
 }
 
-function FilterPanel({ filters, onChange, assets, categories, tagOptions }: FilterPanelProps) {
+function FilterPanel({
+  filters,
+  onChange,
+  assetGroups,
+  assets,
+  categories,
+  tagOptions,
+}: FilterPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleValue = <T extends keyof FilterState>(key: T, value: FilterState[T]) => {
@@ -735,10 +784,14 @@ function FilterPanel({ filters, onChange, assets, categories, tagOptions }: Filt
               }}
             >
               <option value="">자산 선택</option>
-              {assets.map((asset) => (
-                <option key={asset.id} value={asset.id}>
-                  {asset.groupName} · {asset.name}
-                </option>
+              {assetGroups.map((group) => (
+                <optgroup key={group.id} label={group.name}>
+                  {group.assets.map((asset) => (
+                    <option key={asset.id} value={asset.id}>
+                      {asset.name}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
@@ -795,15 +848,18 @@ function FilterPanel({ filters, onChange, assets, categories, tagOptions }: Filt
             유형: {TYPE_OPTIONS.find((option) => option.value === type)?.label}
           </button>
         ))}
-        {filters.assetIds.map((id) => (
-          <button
-            key={id}
-            className="rounded-full border border-black bg-white px-3 py-1 text-xs uppercase"
-            onClick={() => handleChipRemove('assetIds', id)}
-          >
-            자산: {assets.find((asset) => asset.id === id)?.name ?? id}
-          </button>
-        ))}
+        {filters.assetIds.map((id) => {
+          const asset = assets.find((item) => item.id === id);
+          return (
+            <button
+              key={id}
+              className="rounded-full border border-black bg-white px-3 py-1 text-xs uppercase"
+              onClick={() => handleChipRemove('assetIds', id)}
+            >
+              자산: {asset ? `${asset.groupName} · ${asset.name}` : id}
+            </button>
+          );
+        })}
         {filters.categoryIds.map((id) => (
           <button
             key={id}
@@ -1049,9 +1105,10 @@ interface TransactionFormSheetProps {
   onFillSplitAmount: (index: number) => void;
   amountValue: number | '';
   amountFormatted: string;
-  assets: AssetOption[];
+  assetGroups: AssetGroupOption[];
   categories: CategoryNode[];
   typeValue: TransactionType;
+  availableTags: Tag[];
   attachments: AttachmentPreview[];
   onFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveAttachment: (id: string) => void;
@@ -1073,9 +1130,10 @@ function TransactionFormSheet({
   onFillSplitAmount,
   amountValue,
   amountFormatted,
-  assets,
+  assetGroups,
   categories,
   typeValue,
+  availableTags,
   attachments,
   onFileSelect,
   onRemoveAttachment,
@@ -1134,7 +1192,12 @@ function TransactionFormSheet({
               <label className="text-xs font-semibold uppercase text-pixel-ink/70">날짜 / 시간</label>
               <input
                 type="datetime-local"
-                className="rounded-2xl border-2 border-black px-4 py-2 text-sm"
+                className={cn(
+                  'rounded-2xl border-2 px-4 py-2 text-sm outline-none transition',
+                  errors.transactionDate
+                    ? 'border-pixel-red focus:border-pixel-red'
+                    : 'border-black focus:border-pixel-blue',
+                )}
                 {...register('transactionDate', { required: true })}
               />
               {errors.transactionDate ? (
@@ -1146,10 +1209,21 @@ function TransactionFormSheet({
               <label className="text-xs font-semibold uppercase text-pixel-ink/70">금액</label>
               <input
                 type="number"
-                className="rounded-2xl border-2 border-black px-4 py-2 text-sm"
-                {...register('amount', { valueAsNumber: true })}
+                className={cn(
+                  'rounded-2xl border-2 px-4 py-2 text-sm outline-none transition',
+                  errors.amount ? 'border-pixel-red focus:border-pixel-red' : 'border-black focus:border-pixel-blue',
+                )}
+                {...register('amount', {
+                  valueAsNumber: true,
+                  required: '금액을 입력해주세요.',
+                })}
               />
               <span className="text-xs text-pixel-ink/60">{amountFormatted} 원</span>
+              {errors.amount ? (
+                <span className="text-xs text-pixel-red">
+                  {errors.amount.message ?? '금액을 입력해주세요.'}
+                </span>
+              ) : null}
               {amountMismatch ? (
                 <span className="text-xs text-pixel-red">
                   분할 금액의 합이 {amountFormatted}원과 일치해야 합니다.
@@ -1160,14 +1234,21 @@ function TransactionFormSheet({
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold uppercase text-pixel-ink/70">자산</label>
               <select
-                className="rounded-2xl border-2 border-black px-4 py-2 text-sm"
+                className={cn(
+                  'rounded-2xl border-2 px-4 py-2 text-sm outline-none transition',
+                  errors.assetId ? 'border-pixel-red focus:border-pixel-red' : 'border-black focus:border-pixel-blue',
+                )}
                 {...register('assetId', { required: true })}
               >
                 <option value="">자산 선택</option>
-                {assets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.groupName} · {asset.name}
-                  </option>
+                {assetGroups.map((group) => (
+                  <optgroup key={group.id} label={group.name}>
+                    {group.assets.map((asset) => (
+                      <option key={asset.id} value={asset.id}>
+                        {asset.name}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
               {errors.assetId ? (
@@ -1179,22 +1260,39 @@ function TransactionFormSheet({
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-semibold uppercase text-pixel-ink/70">상대 자산</label>
                 <select
-                  className="rounded-2xl border-2 border-black px-4 py-2 text-sm"
+                  className={cn(
+                    'rounded-2xl border-2 px-4 py-2 text-sm outline-none transition',
+                    errors.relatedAssetId
+                      ? 'border-pixel-red focus:border-pixel-red'
+                      : 'border-black focus:border-pixel-blue',
+                  )}
                   {...register('relatedAssetId', { required: true })}
                 >
                   <option value="">자산 선택</option>
-                  {assets.map((asset) => (
-                    <option key={asset.id} value={asset.id}>
-                      {asset.groupName} · {asset.name}
-                    </option>
+                  {assetGroups.map((group) => (
+                    <optgroup key={group.id} label={group.name}>
+                      {group.assets.map((asset) => (
+                        <option key={asset.id} value={asset.id}>
+                          {asset.name}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
+                {errors.relatedAssetId ? (
+                  <span className="text-xs text-pixel-red">상대 자산을 선택해주세요.</span>
+                ) : null}
               </div>
             ) : (
               <div className="flex flex-col gap-2">
                 <label className="text-xs font-semibold uppercase text-pixel-ink/70">카테고리</label>
                 <select
-                  className="rounded-2xl border-2 border-black px-4 py-2 text-sm"
+                  className={cn(
+                    'rounded-2xl border-2 px-4 py-2 text-sm outline-none transition',
+                    errors.categoryId
+                      ? 'border-pixel-red focus:border-pixel-red'
+                      : 'border-black focus:border-pixel-blue',
+                  )}
                   {...register('categoryId', { required: typeValue !== TransactionType.TRANSFER })}
                 >
                   <option value="">카테고리 선택</option>
@@ -1220,7 +1318,12 @@ function TransactionFormSheet({
           <section className="grid gap-4 md:grid-cols-2">
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold uppercase text-pixel-ink/70">태그</label>
-              <TagInput control={control} name="tags" setValue={setValue} />
+              <TagInput
+                control={control}
+                name="tags"
+                setValue={setValue}
+                availableTags={availableTags}
+              />
             </div>
             <div className="flex flex-col gap-2">
               <label className="text-xs font-semibold uppercase text-pixel-ink/70">메모</label>
@@ -1334,10 +1437,12 @@ function TransactionFormSheet({
 
           <section className="flex flex-col gap-2">
             <label className="text-xs font-semibold uppercase text-pixel-ink/70">사진 첨부 (선택)</label>
-            <input type="file" accept="image/*" multiple onChange={onFileSelect} />
-            <p className="text-xs text-pixel-ink/50">
-              현재는 테스트 환경으로, 이미지는 서버에 업로드되지 않고 미리보기로만 확인할 수 있습니다.
-            </p>
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.heic,.heif,image/jpeg,image/png,image/heic,image/heif"
+              multiple
+              onChange={onFileSelect}
+            />
             {attachments.length ? (
               <div className="flex flex-wrap gap-3">
                 {attachments.map((attachment) => (
@@ -1386,61 +1491,185 @@ function TransactionFormSheet({
 }
 
 interface TagInputProps {
-  control: ReturnType<typeof useForm<TransactionFormValues>>['control'];
+  control: Control<TransactionFormValues>;
   name: 'tags';
-  setValue: ReturnType<typeof useForm<TransactionFormValues>>['setValue'];
+  setValue: UseFormSetValue<TransactionFormValues>;
+  availableTags: Tag[];
 }
 
-function TagInput({ control, name, setValue }: TagInputProps) {
+function TagInput({ control, name, setValue, availableTags }: TagInputProps) {
   const [inputValue, setInputValue] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(0);
+
+  useEffect(() => {
+    setHighlightIndex(0);
+  }, [inputValue]);
 
   return (
     <Controller
       control={control}
       name={name}
-      render={({ field }) => (
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap gap-2">
-            {field.value?.map((tag, index) => (
-              <span
-                key={`${tag}-${index}`}
-                className="inline-flex items-center gap-1 rounded-full bg-pixel-purple/20 px-3 py-1 text-xs text-pixel-purple"
-              >
-                #{tag}
-                <button
-                  type="button"
-                  className="text-[10px] text-pixel-purple/80"
-                  onClick={() => {
-                    const next = field.value.filter((current, idx) => idx !== index);
-                    setValue(name, next);
-                    field.onChange(next);
-                  }}
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
-          </div>
-          <input
-            type="text"
-            className="rounded-2xl border-2 border-black px-3 py-2 text-sm"
-            placeholder="#태그"
-            value={inputValue}
-            onChange={(event) => setInputValue(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                const trimmed = inputValue.trim().replace(/^#/, '');
-                if (!trimmed) return;
-                const next = [...(field.value ?? []), trimmed];
-                setValue(name, next);
-                field.onChange(next);
-                setInputValue('');
+      render={({ field }) => {
+        const currentTags = field.value ?? [];
+        const normalizedQuery = inputValue.startsWith('#')
+          ? inputValue.slice(1).toLowerCase()
+          : inputValue.toLowerCase();
+        const trimmedQuery = normalizedQuery.trim();
+        const seenNames = new Set<string>();
+        const suggestions = inputValue.startsWith('#')
+          ? availableTags.filter((tag) => {
+              const tagName = tag.name.trim();
+              if (!tagName) return false;
+              const normalizedTagName = tagName.toLowerCase();
+              const isDuplicate = currentTags.some(
+                (current) => current.toLowerCase() === normalizedTagName,
+              );
+              if (isDuplicate) {
+                return false;
               }
-            }}
-          />
-        </div>
-      )}
+              if (seenNames.has(normalizedTagName)) {
+                return false;
+              }
+              seenNames.add(normalizedTagName);
+              if (!trimmedQuery) {
+                return true;
+              }
+              return normalizedTagName.includes(trimmedQuery);
+            })
+          : [];
+        const showSuggestions = isFocused && suggestions.length > 0 && inputValue.startsWith('#');
+
+        const addTag = (rawValue: string) => {
+          const cleaned = rawValue.trim().replace(/^#+/, '');
+          if (!cleaned) {
+            setInputValue('');
+            return;
+          }
+          const exists = currentTags.some(
+            (current) => current.toLowerCase() === cleaned.toLowerCase(),
+          );
+          if (exists) {
+            setInputValue('');
+            return;
+          }
+          const next = [...currentTags, cleaned];
+          setValue(name, next, { shouldDirty: true });
+          field.onChange(next);
+          setInputValue('');
+        };
+
+        const removeTag = (index: number) => {
+          const next = currentTags.filter((_, idx) => idx !== index);
+          setValue(name, next, { shouldDirty: true });
+          field.onChange(next);
+        };
+
+        const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+          if (showSuggestions && suggestions.length) {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault();
+              setHighlightIndex((prev) => (prev + 1) % suggestions.length);
+              return;
+            }
+            if (event.key === 'ArrowUp') {
+              event.preventDefault();
+              setHighlightIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+              return;
+            }
+            if (event.key === 'Enter' || event.key === 'Tab') {
+              event.preventDefault();
+              const target = suggestions[highlightIndex] ?? suggestions[0];
+              if (target) {
+                addTag(target.name);
+              }
+              return;
+            }
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              setIsFocused(false);
+              return;
+            }
+          }
+
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            addTag(inputValue);
+            return;
+          }
+
+          if (event.key === ' ' && !showSuggestions) {
+            event.preventDefault();
+            addTag(inputValue);
+            return;
+          }
+
+          if (event.key === 'Backspace' && !inputValue && currentTags.length) {
+            event.preventDefault();
+            removeTag(currentTags.length - 1);
+          }
+        };
+
+        return (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap gap-2">
+              {currentTags.map((tag, index) => (
+                <span
+                  key={`${tag}-${index}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-pixel-purple/20 px-3 py-1 text-xs text-pixel-purple"
+                >
+                  #{tag}
+                  <button
+                    type="button"
+                    className="text-[10px] text-pixel-purple/80"
+                    onClick={() => removeTag(index)}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="relative w-full">
+              <input
+                type="text"
+                className="w-full rounded-2xl border-2 border-black px-3 py-2 text-sm"
+                placeholder="#태그"
+                value={inputValue}
+                autoComplete="off"
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onChange={(event) => setInputValue(event.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              {showSuggestions ? (
+                <ul className="absolute left-0 right-0 top-full z-20 mt-2 max-h-44 overflow-y-auto rounded-2xl border-2 border-black bg-white shadow-pixel-lg">
+                  {suggestions.map((tag, index) => {
+                    const isActive = index === highlightIndex;
+                    return (
+                      <li key={tag.id}>
+                        <button
+                          type="button"
+                          className={cn(
+                            'flex w-full items-center justify-between px-3 py-2 text-sm text-pixel-ink transition',
+                            isActive ? 'bg-pixel-purple/15 font-semibold' : 'hover:bg-pixel-purple/10',
+                          )}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            addTag(tag.name);
+                          }}
+                          onMouseEnter={() => setHighlightIndex(index)}
+                        >
+                          <span>#{tag.name}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+            </div>
+          </div>
+        );
+      }}
     />
   );
 }
