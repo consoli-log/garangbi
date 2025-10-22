@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   useForm,
   Controller,
@@ -34,11 +34,13 @@ interface SplitFormValue {
 
 interface AttachmentPreview {
   id: string;
-  file: File;
+  file?: File;
   previewUrl: string;
   mimeType: string;
   size: number;
   name: string;
+  isExisting?: boolean;
+  remoteUrl?: string;
 }
 
 interface TransactionFormValues {
@@ -87,6 +89,8 @@ const VIEW_OPTIONS = {
   CALENDAR: 'CALENDAR',
 } as const;
 
+const PAGE_SIZE = 20;
+
 type ViewOption = (typeof VIEW_OPTIONS)[keyof typeof VIEW_OPTIONS];
 
 const defaultFilters: FilterState = {
@@ -107,6 +111,13 @@ function getTodayDateTime() {
   const now = new Date();
   const offset = now.getTimezoneOffset();
   const local = new Date(now.getTime() - offset * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function toLocalDateTimeInput(value: string) {
+  const source = new Date(value);
+  const offset = source.getTimezoneOffset();
+  const local = new Date(source.getTime() - offset * 60000);
   return local.toISOString().slice(0, 16);
 }
 
@@ -153,10 +164,15 @@ export function TransactionsPage() {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [assets, setAssets] = useState<AssetOption[]>([]);
   const [assetGroups, setAssetGroups] = useState<AssetGroupOption[]>([]);
   const [categories, setCategories] = useState<CategoryNode[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
+  const [hasMore, setHasMore] = useState(false);
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+  const [dayModal, setDayModal] = useState<{ date: string; items: Transaction[] } | null>(null);
 
   const form = useForm<TransactionFormValues>({
     defaultValues: {
@@ -214,7 +230,7 @@ const amountMismatch = useMemo(() => {
 
 const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
   attachments.forEach((attachment) => {
-    if (attachment.previewUrl) {
+    if (attachment.file && attachment.previewUrl) {
       URL.revokeObjectURL(attachment.previewUrl);
     }
   });
@@ -232,58 +248,104 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
     register('attachments');
   }, [register]);
 
-  useEffect(() => {
+  const fetchLedgerMeta = useCallback(async () => {
     if (!ledgerId) {
       return;
     }
 
-    const loadLedgerData = async () => {
-      setIsLoading(true);
+    try {
+      const [assetGroupResponse, categoryTree] = await Promise.all([
+        ledgerService.getAssetGroups(ledgerId),
+        ledgerService.getCategories(ledgerId),
+      ]);
+
+      const groupOptions: AssetGroupOption[] = assetGroupResponse.map((group) => ({
+        id: group.id,
+        name: group.name,
+        assets: group.assets.map((asset) => ({
+          id: asset.id,
+          name: asset.name,
+          groupName: group.name,
+        })),
+      }));
+      const assetOptions: AssetOption[] = groupOptions.flatMap((group) => group.assets);
+
+      setAssetGroups(groupOptions);
+      setAssets(assetOptions);
+      setCategories([
+        ...flattenCategoryTree(categoryTree.income),
+        ...flattenCategoryTree(categoryTree.expense),
+      ]);
+    } catch (error) {
+      notificationService.error('가계부 정보를 불러오지 못했습니다.');
+    }
+  }, [ledgerId]);
+
+  useEffect(() => {
+    fetchLedgerMeta();
+  }, [fetchLedgerMeta]);
+
+  const fetchTransactions = useCallback(
+    async (pageToLoad = 1, replace = false) => {
+      if (!ledgerId) return;
+
+      if (replace) {
+        setIsLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
       try {
-        const [assetGroupResponse, categoryTree, listResponse] = await Promise.all([
-          ledgerService.getAssetGroups(ledgerId),
-          ledgerService.getCategories(ledgerId),
-          transactionsService.listTransactions(ledgerId, {
-            ...filters,
-            startDate: filters.startDate,
-            endDate: filters.endDate,
-          }),
-        ]);
+        const response = await transactionsService.listTransactions(ledgerId, {
+          ...filters,
+          page: pageToLoad,
+          pageSize: PAGE_SIZE,
+        });
 
-        const groupOptions: AssetGroupOption[] = assetGroupResponse.map((group) => ({
-          id: group.id,
-          name: group.name,
-          assets: group.assets.map((asset) => ({
-            id: asset.id,
-            name: asset.name,
-            groupName: group.name,
-          })),
-        }));
-        const assetOptions: AssetOption[] = groupOptions.flatMap((group) => group.assets);
+        setPagination({ page: response.page, totalPages: response.totalPages });
+        setHasMore(response.page < response.totalPages);
 
-        setAssetGroups(groupOptions);
-        setAssets(assetOptions);
-        setCategories([
-          ...flattenCategoryTree(categoryTree.income),
-          ...flattenCategoryTree(categoryTree.expense),
-        ]);
-        setTransactions(listResponse.items);
-        const mappedTags = listResponse.items
-          .flatMap((transaction) => transaction.tags ?? [])
-          .reduce<Record<string, Tag>>((acc, tag) => {
-            acc[tag.id] = tag;
-            return acc;
-          }, {});
-        setTags(Object.values(mappedTags));
+        setTransactions((prev) => {
+          const next = replace
+            ? response.items
+            : [
+                ...prev,
+                ...response.items.filter(
+                  (incoming) => !prev.some((existing) => existing.id === incoming.id),
+                ),
+              ];
+          const tagMap = new Map<string, Tag>();
+          next.forEach((transaction) => {
+            transaction.tags?.forEach((tag) => {
+              tagMap.set(tag.id, tag);
+            });
+          });
+          setTags(Array.from(tagMap.values()));
+          return next;
+        });
       } catch (error) {
         notificationService.error('거래 데이터를 불러오지 못했습니다.');
       } finally {
-        setIsLoading(false);
+        if (replace) {
+          setIsLoading(false);
+        } else {
+          setIsLoadingMore(false);
+        }
       }
-    };
+    },
+    [filters, ledgerId],
+  );
 
-    loadLedgerData();
-  }, [ledgerId, filters]);
+  useEffect(() => {
+    if (!ledgerId) {
+      return;
+    }
+    setTransactions([]);
+    setTags([]);
+    setPagination({ page: 1, totalPages: 1 });
+    setHasMore(false);
+    fetchTransactions(1, true);
+  }, [ledgerId, filters, fetchTransactions]);
 
   useEffect(() => {
     const currentAssetId = getValues('assetId');
@@ -297,6 +359,13 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
   }, [assetGroups, assets, getValues, setValue]);
 
   const groupedTransactions = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
+
+  const handleLoadMoreTransactions = useCallback(() => {
+    if (!hasMore || isLoading || isLoadingMore) {
+      return;
+    }
+    fetchTransactions(pagination.page + 1, false);
+  }, [fetchTransactions, hasMore, isLoading, isLoadingMore, pagination.page]);
 
   const handleToggleSplitMode = (value: boolean) => {
     setIsSplitMode(value);
@@ -331,6 +400,7 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
       return;
     }
     clearAttachmentPreviews(attachmentsValue);
+    setEditingTransactionId(null);
     setIsSplitMode(false);
     setIsFormOpen(true);
     reset({
@@ -350,6 +420,8 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
 
   const handleCloseForm = () => {
     clearAttachmentPreviews(attachmentsValue);
+    setEditingTransactionId(null);
+    setIsSplitMode(false);
     setIsFormOpen(false);
   };
 
@@ -395,27 +467,39 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
           amount: Number(split.amount),
           memo: split.memo,
         }));
-      await transactionsService.createTransaction(ledgerId, {
+      const payload = {
         type: values.type,
         transactionDate: values.transactionDate,
         amount: Number(values.amount),
         assetId: values.assetId,
-        relatedAssetId: values.type === TransactionType.TRANSFER ? values.relatedAssetId ?? null : null,
+        relatedAssetId:
+          values.type === TransactionType.TRANSFER ? values.relatedAssetId ?? null : null,
         categoryId: values.type === TransactionType.TRANSFER ? null : values.categoryId ?? null,
         memo: values.memo,
         note: values.note,
         tags: cleanedTags.length ? cleanedTags : undefined,
         splits: cleanedSplits.length ? cleanedSplits : undefined,
-      });
+      };
 
-      toast.success('거래가 성공적으로 저장되었습니다.', { autoClose: 2000 });
+      if (editingTransactionId) {
+        await transactionsService.updateTransaction(ledgerId, editingTransactionId, payload);
+      } else {
+        await transactionsService.createTransaction(ledgerId, payload);
+      }
+
+      toast.success(
+        editingTransactionId
+          ? '거래가 성공적으로 수정되었습니다.'
+          : '거래가 성공적으로 저장되었습니다.',
+        { autoClose: 2000 },
+      );
       clearAttachmentPreviews(values.attachments);
       setIsSplitMode(false);
+      setEditingTransactionId(null);
       handleCloseForm();
       reset();
 
-      const refreshed = await transactionsService.listTransactions(ledgerId, filters);
-      setTransactions(refreshed.items);
+      await fetchTransactions(1, true);
     } catch (error: any) {
       const message = error?.response?.data?.message ?? '거래 저장에 실패했습니다.';
       toast.error(message);
@@ -477,6 +561,7 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
       mimeType: file.type,
       size: file.size,
       name: file.name,
+      isExisting: false,
     }));
 
     setValue('attachments', [...attachmentsValue, ...previews], { shouldDirty: true });
@@ -500,6 +585,84 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
       setIsDetailOpen(true);
     } catch {
       toast.error('거래 상세를 불러오지 못했습니다.');
+    }
+  };
+
+  const handleEditTransaction = async (transaction: Transaction) => {
+    if (!ledgerId) return;
+    try {
+      const detail = await transactionsService.getTransaction(ledgerId, transaction.id);
+      clearAttachmentPreviews(attachmentsValue);
+
+      const splitInputs: SplitFormValue[] =
+        detail.splits?.map((split) => ({
+          categoryId: split.categoryId,
+          amount: split.amount,
+          memo: split.memo ?? '',
+        })) ?? [];
+
+      const attachmentPreviews: AttachmentPreview[] =
+        detail.attachments?.map((attachment) => {
+          const previewUrl = attachment.thumbnailUrl ?? attachment.fileUrl;
+          const inferredName = attachment.fileUrl.split('/').pop() ?? attachment.id;
+          return {
+            id: attachment.id,
+            previewUrl,
+            mimeType: attachment.mimeType,
+            size: attachment.size,
+            name: inferredName,
+            isExisting: true,
+            remoteUrl: attachment.fileUrl,
+          };
+        }) ?? [];
+
+      reset({
+        type: detail.type,
+        transactionDate: toLocalDateTimeInput(detail.transactionDate),
+        amount: detail.amount,
+        assetId: detail.assetId,
+        relatedAssetId: detail.relatedAssetId ?? null,
+        categoryId: detail.type === TransactionType.TRANSFER ? undefined : detail.categoryId ?? undefined,
+        memo: detail.memo ?? '',
+        note: detail.note ?? '',
+        tags: detail.tags?.map((tag) => tag.name) ?? [],
+        splits: splitInputs,
+        attachments: attachmentPreviews,
+      });
+      setEditingTransactionId(detail.id);
+      setIsSplitMode(splitInputs.length > 0);
+      setIsFormOpen(true);
+    } catch (error) {
+      toast.error('거래 정보를 불러오지 못했습니다.');
+    }
+  };
+
+  const handleDeleteTransaction = async (transaction: Transaction) => {
+    if (!ledgerId) return;
+    const confirmed = window.confirm('선택한 거래를 삭제하시겠습니까?');
+    if (!confirmed) return;
+
+    try {
+      await transactionsService.deleteTransaction(ledgerId, transaction.id);
+      toast.success('거래가 삭제되었습니다.');
+      setTransactions((prev) => {
+        const next = prev.filter((item) => item.id !== transaction.id);
+        const tagMap = new Map<string, Tag>();
+        next.forEach((item) => {
+          item.tags?.forEach((tag) => {
+            tagMap.set(tag.id, tag);
+          });
+        });
+        setTags(Array.from(tagMap.values()));
+        return next;
+      });
+      if (selectedTransaction?.id === transaction.id) {
+        setSelectedTransaction(null);
+        setIsDetailOpen(false);
+      }
+      await fetchTransactions(1, true);
+    } catch (error) {
+      toast.error('거래 삭제에 실패했습니다.');
     }
   };
 
@@ -597,17 +760,28 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
           <TransactionListView
             groupedTransactions={groupedTransactions}
             onSelect={handleSelectTransaction}
+            onEdit={handleEditTransaction}
+            onDelete={handleDeleteTransaction}
+            onLoadMore={handleLoadMoreTransactions}
+            hasMore={hasMore}
+            isLoading={isLoading}
+            isLoadingMore={isLoadingMore}
           />
         ) : (
           <TransactionCalendarView
             transactions={transactions}
             onSelectDate={(date) => {
-              const items = transactions.filter((transaction) =>
-                new Date(transaction.transactionDate).toISOString().slice(0, 10) === date,
-              );
-              if (items.length) {
-                handleSelectTransaction(items[0]);
-              }
+              const items = transactions.filter((transaction) => {
+                const isoDate = new Date(transaction.transactionDate).toISOString().slice(0, 10);
+                return isoDate === date;
+              });
+              setDayModal({
+                date,
+                items: items.sort(
+                  (a, b) =>
+                    new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime(),
+                ),
+              });
             }}
           />
         )}
@@ -618,6 +792,7 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
           isOpen={isFormOpen}
           onClose={handleCloseForm}
           onSubmit={handleSubmit(onSubmit)}
+          isEditing={Boolean(editingTransactionId)}
           register={register}
           control={control}
           splitsArray={splitsArray}
@@ -643,6 +818,7 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
       {isDetailOpen && selectedTransaction ? (
         <TransactionDetailModal
           transaction={selectedTransaction}
+          currentUserId={user?.id ?? null}
           onClose={() => {
             setIsDetailOpen(false);
             setSelectedTransaction(null);
@@ -650,6 +826,26 @@ const clearAttachmentPreviews = (attachments: AttachmentPreview[]) => {
           onAddComment={addComment}
           onUpdateComment={updateComment}
           onDeleteComment={deleteComment}
+        />
+      ) : null}
+
+      {dayModal ? (
+        <TransactionDayModal
+          date={dayModal.date}
+          transactions={dayModal.items}
+          onClose={() => setDayModal(null)}
+          onSelect={(transaction) => {
+            setDayModal(null);
+            void handleSelectTransaction(transaction);
+          }}
+          onEdit={(transaction) => {
+            setDayModal(null);
+            void handleEditTransaction(transaction);
+          }}
+          onDelete={(transaction) => {
+            setDayModal(null);
+            void handleDeleteTransaction(transaction);
+          }}
         />
       ) : null}
     </div>
@@ -886,12 +1082,56 @@ function FilterPanel({
 interface TransactionListViewProps {
   groupedTransactions: Record<string, Transaction[]>;
   onSelect: (transaction: Transaction) => void;
+  onEdit: (transaction: Transaction) => void;
+  onDelete: (transaction: Transaction) => void;
+  onLoadMore: () => void;
+  hasMore: boolean;
+  isLoading: boolean;
+  isLoadingMore: boolean;
 }
 
-function TransactionListView({ groupedTransactions, onSelect }: TransactionListViewProps) {
-  const groups = Object.entries(groupedTransactions).sort((a, b) =>
-    new Date(b[0]).getTime() - new Date(a[0]).getTime(),
+function TransactionListView({
+  groupedTransactions,
+  onSelect,
+  onEdit,
+  onDelete,
+  onLoadMore,
+  hasMore,
+  isLoading,
+  isLoadingMore,
+}: TransactionListViewProps) {
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const groups = useMemo(
+    () =>
+      Object.entries(groupedTransactions).sort(
+        (a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime(),
+      ),
+    [groupedTransactions],
   );
+
+  useEffect(() => {
+    if (!hasMore || isLoading || isLoadingMore) {
+      return;
+    }
+
+    const target = loadMoreRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          onLoadMore();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, isLoading, isLoadingMore, onLoadMore]);
 
   if (!groups.length) {
     return (
@@ -922,7 +1162,7 @@ function TransactionListView({ groupedTransactions, onSelect }: TransactionListV
               {items.map((transaction) => (
                 <li
                   key={transaction.id}
-                  className="flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-black bg-white px-4 py-3 shadow-pixel-sm transition hover:-translate-x-1 hover:-translate-y-1 hover:shadow-pixel-md"
+                  className="group relative flex cursor-pointer flex-wrap items-center justify-between gap-3 rounded-2xl border border-black bg-white px-4 py-3 shadow-pixel-sm transition hover:-translate-x-1 hover:-translate-y-1 hover:shadow-pixel-md"
                   onClick={() => onSelect(transaction)}
                 >
                   <div className="flex flex-col">
@@ -961,12 +1201,43 @@ function TransactionListView({ groupedTransactions, onSelect }: TransactionListV
                       })}
                     </div>
                   </div>
+                  <div className="absolute right-3 top-3 hidden gap-2 group-hover:flex">
+                    <button
+                      type="button"
+                      className="rounded-full border border-black bg-white px-2 py-1 text-[10px] font-semibold uppercase shadow-pixel-sm"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onEdit(transaction);
+                      }}
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-black bg-pixel-red px-2 py-1 text-[10px] font-semibold uppercase text-white shadow-pixel-sm"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDelete(transaction);
+                      }}
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
           </div>
         );
       })}
+      <div ref={loadMoreRef} className="h-1 w-full" />
+      {isLoadingMore ? (
+        <div className="flex items-center justify-center gap-2 text-xs text-pixel-ink/60">
+          더 불러오는 중입니다...
+        </div>
+      ) : null}
+      {!hasMore && !isLoading ? (
+        <div className="text-center text-xs text-pixel-ink/50">마지막 거래입니다.</div>
+      ) : null}
     </div>
   );
 }
@@ -1097,6 +1368,7 @@ interface TransactionFormSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: () => void;
+  isEditing: boolean;
   register: UseFormRegister<TransactionFormValues>;
   control: Control<TransactionFormValues>;
   splitsArray: UseFieldArrayReturn<TransactionFormValues, 'splits'>;
@@ -1122,6 +1394,7 @@ function TransactionFormSheet({
   isOpen,
   onClose,
   onSubmit,
+  isEditing,
   register,
   control,
   splitsArray,
@@ -1159,9 +1432,12 @@ function TransactionFormSheet({
         </button>
 
         <div className="rounded-t-[32px] border-b-4 border-black bg-white px-8 py-6">
-          <h2 className="pixel-heading text-2xl">새 거래 입력</h2>
+          <h2 className="pixel-heading text-2xl">
+            {isEditing ? '거래 수정' : '새 거래 입력'}
+          </h2>
           <p className="mt-2 text-sm text-pixel-ink/70">
-            거래 유형을 선택하고 필요한 정보를 입력해주세요. 필수 항목은 모두 채우지 않으면 저장할 수 없습니다.
+            거래 유형을 선택하고 필요한 정보를 입력해주세요. 필수 항목을 모두 채워야 저장할 수
+            있습니다.
           </p>
         </div>
 
@@ -1481,7 +1757,7 @@ function TransactionFormSheet({
               className="pixel-button bg-pixel-blue text-white hover:text-white disabled:opacity-60"
               disabled={amountMismatch}
             >
-              저장하기
+              {isEditing ? '수정하기' : '저장하기'}
             </button>
           </footer>
         </form>
@@ -1674,8 +1950,135 @@ function TagInput({ control, name, setValue, availableTags }: TagInputProps) {
   );
 }
 
+interface TransactionDayModalProps {
+  date: string;
+  transactions: Transaction[];
+  onClose: () => void;
+  onSelect: (transaction: Transaction) => void;
+  onEdit: (transaction: Transaction) => void;
+  onDelete: (transaction: Transaction) => void;
+}
+
+function TransactionDayModal({
+  date,
+  transactions,
+  onClose,
+  onSelect,
+  onEdit,
+  onDelete,
+}: TransactionDayModalProps) {
+  const [year, month, day] = date.split('-').map(Number);
+  const displayDate = year && month && day ? new Date(year, month - 1, day) : new Date();
+  const summary = calculateDailySummary(transactions);
+
+  return (
+    <div className="fixed inset-0 z-[2050] flex items-center justify-center bg-black/60 px-4 py-6">
+      <div className="relative flex w-full max-w-3xl flex-col gap-4 rounded-[32px] border-4 border-black bg-white p-6 shadow-pixel-lg">
+        <button
+          type="button"
+          className="absolute right-4 top-4 text-sm font-semibold uppercase text-pixel-ink"
+          onClick={onClose}
+        >
+          닫기
+        </button>
+        <header className="flex flex-col gap-2">
+          <h3 className="pixel-heading text-xl">
+            {displayDate.toLocaleDateString('ko-KR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              weekday: 'long',
+            })}
+          </h3>
+          <div className="flex items-center gap-3 text-xs uppercase text-pixel-ink/70">
+            <span className="rounded-full bg-pixel-green/20 px-2 py-1 text-pixel-green">
+              +{formatCurrency(summary.income)}
+            </span>
+            <span className="rounded-full bg-pixel-red/20 px-2 py-1 text-pixel-red">
+              -{formatCurrency(summary.expense)}
+            </span>
+          </div>
+        </header>
+
+        <section className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto pr-1">
+          {transactions.length ? (
+            transactions.map((transaction) => (
+              <div
+                key={transaction.id}
+                className="group relative flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black bg-white px-4 py-3 shadow-pixel-sm transition hover:-translate-x-1 hover:-translate-y-1 hover:shadow-pixel-md"
+              >
+                <div className="flex flex-col">
+                  <button
+                    type="button"
+                    className="text-left text-sm font-semibold text-pixel-ink"
+                    onClick={() => onSelect(transaction)}
+                  >
+                    {transaction.memo || '제목 없음'}
+                  </button>
+                  <span className="text-xs text-pixel-ink/60">
+                    {transaction.categoryId ? '카테고리 연결됨' : '카테고리 없음'}
+                  </span>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {transaction.tags?.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="rounded-full bg-pixel-purple/15 px-2 py-1 text-[10px] uppercase text-pixel-purple"
+                      >
+                        #{tag.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div
+                    className={cn('text-base font-bold', {
+                      'text-pixel-green': transaction.type === TransactionType.INCOME,
+                      'text-pixel-red': transaction.type === TransactionType.EXPENSE,
+                      'text-pixel-ink': transaction.type === TransactionType.TRANSFER,
+                    })}
+                  >
+                    {transaction.type === TransactionType.EXPENSE ? '-' : '+'}
+                    {formatCurrency(transaction.amount)}
+                  </div>
+                  <div className="text-xs text-pixel-ink/60">
+                    {new Date(transaction.transactionDate).toLocaleTimeString('ko-KR', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </div>
+                </div>
+                <div className="absolute right-3 top-3 hidden gap-2 group-hover:flex">
+                  <button
+                    type="button"
+                    className="rounded-full border border-black bg-white px-2 py-1 text-[10px] font-semibold uppercase shadow-pixel-sm"
+                    onClick={() => onEdit(transaction)}
+                  >
+                    수정
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-full border border-black bg-pixel-red px-2 py-1 text-[10px] font-semibold uppercase text-white shadow-pixel-sm"
+                    onClick={() => onDelete(transaction)}
+                  >
+                    삭제
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="flex min-h-[160px] items-center justify-center rounded-2xl border border-dashed border-black/30 bg-pixel-dark/5 text-sm text-pixel-ink/60">
+              선택한 날짜에 등록된 거래가 없습니다.
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
 interface TransactionDetailModalProps {
   transaction: Transaction;
+  currentUserId: string | null;
   onClose: () => void;
   onAddComment: (transactionId: string, content: string) => void;
   onUpdateComment: (transactionId: string, comment: TransactionComment) => void;
@@ -1684,6 +2087,7 @@ interface TransactionDetailModalProps {
 
 function TransactionDetailModal({
   transaction,
+  currentUserId,
   onClose,
   onAddComment,
   onUpdateComment,
@@ -1732,58 +2136,76 @@ function TransactionDetailModal({
         <section className="flex flex-col gap-3">
           <h4 className="text-sm font-semibold uppercase text-pixel-ink">댓글</h4>
           <div className="flex flex-col gap-2">
-            {transaction.comments?.map((comment) => (
-              <div
-                key={comment.id}
-                className="rounded-2xl border border-black bg-white px-3 py-2 text-sm shadow-pixel-sm"
-              >
-                <div className="flex items-center justify-between text-xs text-pixel-ink/60">
-                  <span>{comment.user?.nickname ?? '사용자'}</span>
-                  <span>{new Date(comment.createdAt).toLocaleString('ko-KR')}</span>
-                </div>
-                {editingCommentId === comment.id ? (
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      value={editingValue}
-                      onChange={(event) => setEditingValue(event.target.value)}
-                      className="flex-1 rounded-2xl border border-black px-2 py-1 text-sm"
-                    />
-                    <button
-                      type="button"
-                      className="rounded-full border border-black bg-white px-3 py-1 text-xs"
-                      onClick={() => {
-                        onUpdateComment(transaction.id, {
-                          ...comment,
-                          content: editingValue,
-                        });
-                        setEditingCommentId(null);
-                      }}
-                    >
-                      저장
-                    </button>
+            {transaction.comments?.map((comment) => {
+              const isMine = currentUserId ? comment.userId === currentUserId : false;
+              const displayName = comment.user?.nickname ?? comment.user?.email ?? '사용자';
+              const avatarLabel = displayName.trim().charAt(0).toUpperCase() || '유';
+              const renderAsEditing = isMine && editingCommentId === comment.id;
+
+              return (
+                <div
+                  key={comment.id}
+                  className="rounded-2xl border border-black bg-white px-3 py-2 text-sm shadow-pixel-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs text-pixel-ink/70">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full border border-black bg-pixel-purple/15 text-[11px] font-semibold text-pixel-purple">
+                        {avatarLabel}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-pixel-ink">{displayName}</span>
+                        <span className="text-[10px] text-pixel-ink/60">
+                          {new Date(comment.createdAt).toLocaleString('ko-KR')}
+                        </span>
+                      </div>
+                    </div>
+                    {isMine ? (
+                      <div className="flex gap-2 text-[10px] text-pixel-ink/60">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingCommentId(comment.id);
+                            setEditingValue(comment.content);
+                          }}
+                        >
+                          수정
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDeleteComment(transaction.id, comment.id)}
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
-                ) : (
-                  <p className="mt-2 text-sm text-pixel-ink">{comment.content}</p>
-                )}
-                <div className="mt-2 flex gap-2 text-[10px] text-pixel-ink/60">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingCommentId(comment.id);
-                      setEditingValue(comment.content);
-                    }}
-                  >
-                    수정
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteComment(transaction.id, comment.id)}
-                  >
-                    삭제
-                  </button>
+                  {renderAsEditing ? (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        value={editingValue}
+                        onChange={(event) => setEditingValue(event.target.value)}
+                        className="flex-1 rounded-2xl border border-black px-2 py-1 text-sm"
+                      />
+                      <button
+                        type="button"
+                        className="rounded-full border border-black bg-white px-3 py-1 text-xs"
+                        onClick={() => {
+                          onUpdateComment(transaction.id, {
+                            ...comment,
+                            content: editingValue,
+                          });
+                          setEditingCommentId(null);
+                        }}
+                      >
+                        저장
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-pixel-ink">{comment.content}</p>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="flex items-center gap-2">
             <input
