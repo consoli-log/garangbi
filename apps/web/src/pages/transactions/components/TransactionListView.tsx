@@ -3,11 +3,17 @@ import { Transaction, TransactionType } from '@garangbi/types';
 import { calculateDailySummary, formatCurrency } from '../utils';
 import { cn } from '../../../lib/cn';
 
+type RichTransaction = Transaction & {
+  category?: {
+    name?: string | null;
+  };
+};
+
 interface TransactionListViewProps {
-  groupedTransactions: Record<string, Transaction[]>;
-  onSelect: (transaction: Transaction) => void;
-  onEdit: (transaction: Transaction) => void;
-  onDelete: (transaction: Transaction) => void;
+  groupedTransactions: Record<string, RichTransaction[]>;
+  onSelect: (transaction: RichTransaction) => void;
+  onEdit: (transaction: RichTransaction) => void;
+  onDelete: (transaction: RichTransaction) => void;
   onLoadMore: () => void;
   hasMore: boolean;
   isLoadingMore: boolean;

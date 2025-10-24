@@ -66,6 +66,17 @@ export function isSupportedImage(file: File) {
   return ALLOWED_IMAGE_EXTENSIONS.includes(extension);
 }
 
+export function getLocalDateKey(input: string | Date) {
+  const date = typeof input === 'string' ? new Date(input) : input;
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export function createDefaultFormValues(): TransactionFormValues {
   return {
     type: TransactionType.EXPENSE,
@@ -94,7 +105,10 @@ export function extractUniqueTags(transactions: Transaction[]): Tag[] {
 
 export function groupTransactionsByDate(transactions: Transaction[]) {
   return transactions.reduce<Record<string, Transaction[]>>((acc, transaction) => {
-    const key = new Date(transaction.transactionDate).toISOString().slice(0, 10);
+    const key = getLocalDateKey(transaction.transactionDate);
+    if (!key) {
+      return acc;
+    }
     acc[key] = acc[key] ? [...acc[key], transaction] : [transaction];
     return acc;
   }, {});

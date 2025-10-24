@@ -3,13 +3,19 @@ import { Transaction, TransactionType } from '@garangbi/types';
 import { formatCurrency } from '../utils';
 import { cn } from '../../../lib/cn';
 
+type RichTransaction = Transaction & {
+  category?: {
+    name?: string | null;
+  };
+};
+
 interface DailyTransactionsModalProps {
   date: string;
-  items: Transaction[];
+  items: RichTransaction[];
   onClose: () => void;
-  onSelect: (transaction: Transaction) => void;
-  onEdit: (transaction: Transaction) => void;
-  onDelete: (transaction: Transaction) => void;
+  onSelect: (transaction: RichTransaction) => void;
+  onEdit: (transaction: RichTransaction) => void;
+  onDelete: (transaction: RichTransaction) => void;
   deletingId: string | null;
 }
 

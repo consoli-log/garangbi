@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Transaction, TransactionType } from '@garangbi/types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getLocalDateKey } from '../utils';
 import { cn } from '../../../lib/cn';
 
 interface TransactionCalendarViewProps {
@@ -29,15 +29,18 @@ export function TransactionCalendarView({
   const dailyTotals = useMemo(() => {
     return transactions.reduce<Record<string, { income: number; expense: number }>>(
       (acc, transaction) => {
-        const date = new Date(transaction.transactionDate).toISOString().slice(0, 10);
-        if (!acc[date]) {
-          acc[date] = { income: 0, expense: 0 };
+        const dateKey = getLocalDateKey(transaction.transactionDate);
+        if (!dateKey) {
+          return acc;
+        }
+        if (!acc[dateKey]) {
+          acc[dateKey] = { income: 0, expense: 0 };
         }
         if (transaction.type === TransactionType.INCOME) {
-          acc[date].income += transaction.amount;
+          acc[dateKey].income += transaction.amount;
         }
         if (transaction.type === TransactionType.EXPENSE) {
-          acc[date].expense += transaction.amount;
+          acc[dateKey].expense += transaction.amount;
         }
         return acc;
       },
@@ -54,7 +57,7 @@ export function TransactionCalendarView({
     const cells = Array.from({ length: 42 }).map((_, index) => {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + index);
-      const iso = date.toISOString().slice(0, 10);
+      const iso = getLocalDateKey(date);
       return {
         date,
         iso,

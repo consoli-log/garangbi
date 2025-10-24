@@ -5,6 +5,7 @@ import { PREVIEW_FALLBACK_DATA_URI } from '../constants';
 
 interface TransactionDetailModalProps {
   transaction: Transaction;
+  currentUserId?: string | null;
   onClose: () => void;
   onEdit: (transaction: Transaction) => void;
   onAddComment: (transactionId: string, content: string) => void;
@@ -14,6 +15,7 @@ interface TransactionDetailModalProps {
 
 export function TransactionDetailModal({
   transaction,
+  currentUserId,
   onClose,
   onEdit,
   onAddComment,
@@ -114,66 +116,72 @@ export function TransactionDetailModal({
         <section className="flex flex-col gap-3">
           <h4 className="text-sm font-semibold uppercase text-pixel-ink">댓글</h4>
           <div className="flex flex-col gap-2">
-            {transaction.comments?.map((comment) => (
-              <div
-                key={comment.id}
-                className="rounded-2xl border border-black bg-white px-3 py-2 text-sm shadow-pixel-sm"
-              >
-                <div className="flex items-center justify-between text-xs text-pixel-ink/60">
-                  <span>{comment.user?.nickname ?? comment.user?.email ?? '사용자'}</span>
-                  <span>{new Date(comment.createdAt).toLocaleString('ko-KR')}</span>
-                </div>
-                {editingCommentId === comment.id ? (
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      value={editingValue}
-                      onChange={(event) => setEditingValue(event.target.value)}
-                      className="flex-1 rounded-2xl border border-black px-2 py-1 text-sm"
-                    />
-                    <button
-                      type="button"
-                      className="rounded-full border border-black bg-white px-3 py-1 text-xs"
-                      onClick={() => {
-                        onUpdateComment(transaction.id, {
-                          ...comment,
-                          content: editingValue,
-                        });
-                        setEditingCommentId(null);
-                      }}
-                    >
-                      저장
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-full border border-black bg-white px-3 py-1 text-xs text-pixel-red"
-                      onClick={() => setEditingCommentId(null)}
-                    >
-                      취소
-                    </button>
+            {transaction.comments?.map((comment) => {
+              const isMine = currentUserId ? comment.userId === currentUserId : false;
+              const isEditing = isMine && editingCommentId === comment.id;
+              return (
+                <div
+                  key={comment.id}
+                  className="rounded-2xl border border-black bg-white px-3 py-2 text-sm shadow-pixel-sm"
+                >
+                  <div className="flex items-center justify-between text-xs text-pixel-ink/60">
+                    <span>{comment.user?.nickname ?? comment.user?.email ?? '사용자'}</span>
+                    <span>{new Date(comment.createdAt).toLocaleString('ko-KR')}</span>
                   </div>
-                ) : (
-                  <p className="mt-2 text-sm text-pixel-ink">{comment.content}</p>
-                )}
-                <div className="mt-2 flex gap-2 text-[10px] text-pixel-ink/60">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingCommentId(comment.id);
-                      setEditingValue(comment.content);
-                    }}
-                  >
-                    수정
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteComment(transaction.id, comment.id)}
-                    className="text-pixel-red"
-                  >
-                    삭제
-                  </button>
+                  {isEditing ? (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        value={editingValue}
+                        onChange={(event) => setEditingValue(event.target.value)}
+                        className="flex-1 rounded-2xl border border-black px-2 py-1 text-sm"
+                      />
+                      <button
+                        type="button"
+                        className="rounded-full border border-black bg-white px-3 py-1 text-xs"
+                        onClick={() => {
+                          onUpdateComment(transaction.id, {
+                            ...comment,
+                            content: editingValue,
+                          });
+                          setEditingCommentId(null);
+                        }}
+                      >
+                        저장
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full border border-black bg-white px-3 py-1 text-xs text-pixel-red"
+                        onClick={() => setEditingCommentId(null)}
+                      >
+                        취소
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-pixel-ink">{comment.content}</p>
+                  )}
+                  {isMine ? (
+                    <div className="mt-2 flex gap-2 text-[10px] text-pixel-ink/60">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingCommentId(comment.id);
+                          setEditingValue(comment.content);
+                        }}
+                      >
+                        수정
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteComment(transaction.id, comment.id)}
+                        className="text-pixel-red"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="flex items-center gap-2">
             <input

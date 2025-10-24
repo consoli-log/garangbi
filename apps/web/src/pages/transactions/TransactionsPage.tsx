@@ -35,6 +35,7 @@ import {
   extractUniqueTags,
   flattenCategoryTree,
   formatCurrency,
+  getLocalDateKey,
   getTodayDateTime,
   groupAssetsByGroupName,
   groupTransactionsByDate,
@@ -468,7 +469,7 @@ export function TransactionsPage() {
 
   const handleOpenDailyModal = (date: string) => {
     const items = transactionsRef.current.filter((transaction) => {
-      return new Date(transaction.transactionDate).toISOString().slice(0, 10) === date;
+      return getLocalDateKey(transaction.transactionDate) === date;
     });
     setDailyModal({ date, items });
   };
@@ -741,7 +742,6 @@ export function TransactionsPage() {
         <FilterPanel
           filters={filters}
           onChange={setFilters}
-          assetGroups={assetGroups}
           assets={assets}
           categories={flatCategories}
           tagOptions={tags}
@@ -754,7 +754,7 @@ export function TransactionsPage() {
             데이터를 불러오는 중입니다...
           </div>
         ) : view === VIEW_OPTIONS.LIST ? (
-          <TransactionList
+          <TransactionListView
             groupedTransactions={groupedTransactions}
             onSelect={handleSelectTransaction}
             onEdit={handleEditTransaction}
@@ -765,21 +765,20 @@ export function TransactionsPage() {
             deletingId={deletingId}
           />
         ) : (
-          <TransactionCalendar
+          <TransactionCalendarView
             transactions={transactions}
             onSelectDate={handleOpenDailyModal}
           />
         )}
       </section>
 
-  {isFormOpen ? (
+      {isFormOpen ? (
         <TransactionFormSheet
           isOpen={isFormOpen}
           mode={formMode}
           isSaving={isSaving}
           onClose={handleCloseForm}
           onSubmit={handleSubmit(onSubmit)}
-          isEditing={Boolean(editingTransactionId)}
           register={register}
           control={control}
           splitsArray={splitsArray}
@@ -817,6 +816,7 @@ export function TransactionsPage() {
       {isDetailOpen && selectedTransaction ? (
         <TransactionDetailModal
           transaction={selectedTransaction}
+          currentUserId={user?.id ?? null}
           onClose={() => setIsDetailOpen(false)}
           onEdit={handleEditFromDetail}
           onAddComment={addComment}
