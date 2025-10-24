@@ -623,7 +623,7 @@ export function TransactionsPage() {
       });
       const detail = await transactionsService.getTransaction(ledgerId, transactionId);
       setSelectedTransaction(detail);
-    } catch (error) {
+    } catch {
       toast.error('댓글 수정에 실패했습니다.');
     }
   };
@@ -636,7 +636,7 @@ export function TransactionsPage() {
       await transactionsService.deleteComment(ledgerId, transactionId, commentId);
       const detail = await transactionsService.getTransaction(ledgerId, transactionId);
       setSelectedTransaction(detail);
-    } catch (error) {
+    } catch {
       toast.error('댓글 삭제에 실패했습니다.');
     }
   };
@@ -696,10 +696,23 @@ export function TransactionsPage() {
             </button>
             <button
               type="button"
+              onClick={handleNotificationClick}
               className={cn(
-                'rounded-full border-2 border-black px-4 py-2 text-sm font-semibold uppercase tracking-wide shadow-pixel-sm transition',
-                view === VIEW_OPTIONS.LIST ? 'bg-pixel-blue text-white' : 'bg-white text-pixel-ink',
+                'relative flex items-center gap-2 rounded-full border-2 border-black px-4 py-2 text-sm font-semibold uppercase tracking-wide shadow-pixel-sm transition',
+                hasUnreadComments ? 'bg-pixel-purple text-white' : 'bg-white text-pixel-ink',
               )}
+            >
+              <span aria-hidden="true" role="img">
+                🔔
+              </span>
+              <span>알림</span>
+              {hasUnreadComments ? (
+                <span className="absolute -right-1 -top-1 inline-flex h-3 w-3 items-center justify-center rounded-full bg-pixel-red text-[0px]" />
+              ) : null}
+            </button>
+            <button
+              type="button"
+              className={`rounded-full border-2 border-black px-4 py-2 text-sm font-semibold uppercase tracking-wide shadow-pixel-sm transition ${view === VIEW_OPTIONS.LIST ? 'bg-pixel-blue text-white' : 'bg-white text-pixel-ink'}`}
               onClick={() => setView(VIEW_OPTIONS.LIST)}
             >
               목록 보기
@@ -728,6 +741,7 @@ export function TransactionsPage() {
         <FilterPanel
           filters={filters}
           onChange={setFilters}
+          assetGroups={assetGroups}
           assets={assets}
           categories={flatCategories}
           tagOptions={tags}
@@ -740,7 +754,7 @@ export function TransactionsPage() {
             데이터를 불러오는 중입니다...
           </div>
         ) : view === VIEW_OPTIONS.LIST ? (
-          <TransactionListView
+          <TransactionList
             groupedTransactions={groupedTransactions}
             onSelect={handleSelectTransaction}
             onEdit={handleEditTransaction}
@@ -751,7 +765,7 @@ export function TransactionsPage() {
             deletingId={deletingId}
           />
         ) : (
-          <TransactionCalendarView
+          <TransactionCalendar
             transactions={transactions}
             onSelectDate={handleOpenDailyModal}
           />
@@ -765,6 +779,7 @@ export function TransactionsPage() {
           isSaving={isSaving}
           onClose={handleCloseForm}
           onSubmit={handleSubmit(onSubmit)}
+          isEditing={Boolean(editingTransactionId)}
           register={register}
           control={control}
           splitsArray={splitsArray}
