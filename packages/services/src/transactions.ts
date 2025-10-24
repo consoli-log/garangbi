@@ -46,6 +46,8 @@ export interface TransactionQuery {
   types?: TransactionType[];
   includeSplits?: boolean;
   includeAttachments?: boolean;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface TransactionListResponse {
