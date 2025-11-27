@@ -6,15 +6,23 @@
   "scripts": {
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
-    "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-
+    "lint": "eslint .",
+    "format": "prettier --write .",
     "dev:server": "pnpm dev --filter server",
     "dev:web": "pnpm dev --filter web"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.2",
     "turbo": "^2.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.46.4"
   }
 }
