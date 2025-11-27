@@ -1,4 +1,3 @@
-// 신규 작성
 export type AppEnv = 'dev' | 'test' | 'prod';
 
 export const APP_ENV: AppEnv =

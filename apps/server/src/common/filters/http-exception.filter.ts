@@ -1,4 +1,3 @@
-// 신규 작성
 import {
   ArgumentsHost,
   Catch,
