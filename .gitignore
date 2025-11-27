@@ -1,24 +1,24 @@
-# node / pnpm
+# dependencies
 node_modules/
 .pnpm-store/
-pnpm-lock.yaml
 
-# build
+# build outputs
 dist/
 build/
+.next/
+coverage/
 .turbo/
-.vite/
 
-# env (절대 커밋 금지)
-*.env
-prisma/.env
-apps/server/.env
+# env
+.env
+.env.*
+!.env.example
 
 # logs
 npm-debug.log*
-pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 logs/
 *.log
 

@@ -1,56 +1,68 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
 
-html,
-body {
-  height: 100%;
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
 }
 
 body {
   margin: 0;
-  font-family: 'Inter', 'Segoe UI', sans-serif;
-  font-size: 16px;
-  line-height: 1.65;
-  letter-spacing: -0.01em;
-  background: linear-gradient(155deg, #fefefe 0%, #f3f5ff 55%, #f7f5ff 100%);
-  color: #101828;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
 }
 
-#root {
-  min-height: 100%;
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
 }
 
-@layer components {
-  .pixel-box {
-    @apply relative overflow-hidden rounded-[32px] border-4 border-black bg-white p-6 text-pixel-ink shadow-pixel-md transition-transform duration-300 ease-out;
-    background-image: linear-gradient(135deg, rgba(255, 214, 10, 0.14), rgba(29, 211, 176, 0.08));
-  }
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
 
-  .pixel-box-alt {
-    @apply rounded-[32px] border-4 border-black bg-pixel-blue p-6 text-white shadow-pixel-lg transition-transform duration-300 ease-out;
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
   }
-
-  .pixel-heading {
-    @apply text-2xl font-black uppercase tracking-tight text-pixel-ink;
+  a:hover {
+    color: #747bff;
   }
-
-  .pixel-text {
-    @apply text-sm leading-relaxed text-pixel-ink/80;
-  }
-
-  .pixel-button {
-    @apply inline-flex items-center justify-center rounded-[24px] border-4 border-black bg-pixel-yellow px-6 py-3 text-sm font-semibold uppercase tracking-wider text-pixel-ink shadow-pixel-lg transition-transform duration-200 ease-out;
-    box-shadow: 14px 14px 0 0 rgba(16, 24, 40, 0.82);
-  }
-
-  .pixel-button:hover {
-    transform: translate(-6px, -6px);
-    box-shadow: 18px 18px 0 0 rgba(16, 24, 40, 0.86);
-  }
-
-  .pixel-button:active {
-    transform: translate(0, 0);
-    box-shadow: 8px 8px 0 0 rgba(16, 24, 40, 0.7);
+  button {
+    background-color: #f9f9f9;
   }
 }

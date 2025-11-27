@@ -1,27 +1,41 @@
 {
-  "name": "garangbi-monorepo",
+  "name": "garangbi",
+  "version": "0.0.1",
   "private": true,
+  "packageManager": "pnpm@9.0.0",
   "scripts": {
-    "build": "turbo build",
-    "dev": "turbo dev",
-    "lint": "turbo lint",
-    "db:up": "docker-compose up -d",
-    "db:down": "docker-compose down",
-    "//": "--- Prisma commands should be run within the server's context ---",
-    "prisma": "pnpm --filter @garangbi/server exec prisma",
-    "db:studio": "pnpm prisma studio",
-    "dev:all": "pnpm db:up && pnpm prisma db push && turbo dev",
-    "dev:all:studio": "pnpm dev:all & pnpm db:studio"
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "prepare": "husky install",
+    "lint-staged": "lint-staged",
+    "dev:server": "pnpm dev --filter server",
+    "dev:web": "pnpm dev --filter web"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,html}": [
+      "prettier --write"
+    ]
   },
   "devDependencies": {
-    "prettier": "^3.3.2",
-    "prisma": "^5.22.0",
-    "turbo": "^2.0.4"
-  },
-  "packageManager": "pnpm@9.5.0",
-  "dependencies": {
-    "@prisma/client": "5.22.0",
-    "@types/bcrypt": "^5.0.2",
-    "bcrypt": "^5.1.1"
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^16.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.6.2",
+    "turbo": "^2.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.46.4"
   }
 }
