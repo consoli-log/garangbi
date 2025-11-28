@@ -163,24 +163,33 @@ chore: 불필요한 주석 제거
 
 ### ✔ main
 
-- 배포/운영 기준
-- 직접 커밋 금지
+- 배포/운영 기준 브랜치
+- 직접 커밋 금지 (항상 브랜치를 통해 머지)
+- Codex가 제안하는 모든 작업은 feat/* 또는 hotfix/* 브랜치 기준으로 진행
 
 ### ✔ develop (원하면 사용)
 
 - 기능 통합 브랜치
-  (원하지 않으면 생략 가능 — 지금 프로젝트는 **main + feature 브랜치만 사용해도 충분**)
+- 필요 없으면 생략 가능 — 이 프로젝트는 기본적으로 **main + feat/* 브랜치만 사용**
+- 팀 작업 등으로 브랜치가 많아질 때만 도입 검토
 
-### ✔ feature/\*
+### ✔ feat/*
 
-- 기능 구현 브랜치
+- 새 기능, 개선, 문서 작업 등 대부분의 개발 작업 브랜치
+- 한 브랜치에는 하나의 작업(이슈/기능)만 포함
+- 브랜치 네이밍 규칙:
+  - `feat/{도메인}-{간단설명}`
+  - 예:
+    - `feat/acc-signup-api`
+    - `feat/ledger-input-ui`
+    - `feat/docs-functional-spec` (문서 작업도 feat/* 사용)
+
+### ✔ hotfix/*
+
+- 운영 환경(배포된 main)에 대한 긴급 버그 수정 브랜치
 - 예:
-  - `feature/users-module`
-  - `feature/auth-api`
-
-### ✔ hotfix/\*
-
-- 운영 긴급 버그 수정
+  - `hotfix/fix-login-redirect`
+  - `hotfix/fix-wrong-balance`
 
 ---
 
