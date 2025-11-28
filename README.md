@@ -1,6 +1,6 @@
 # 📚 **README.md**
 
-# 🌧️ 가랑비(v2)
+# 🌧️ 쪼개부기(v2)
 
 모노레포 기반의 Web + Server 프로젝트입니다.  
 `pnpm + Turborepo` 를 사용하며, 백엔드는 NestJS/Prisma, 프론트는 React 기반입니다.

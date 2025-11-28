@@ -1,12 +1,12 @@
 {
-  "name": "@garangbi/config",
+  "name": "@zzogaebook/config",
   "version": "0.0.1",
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "lint": "echo \"no lint configured for @garangbi/config\"",
+    "lint": "echo \"no lint configured for @zzogaebook/config\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

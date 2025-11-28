@@ -29,8 +29,8 @@
 - 빌드/번들: Vite
 - 언어: TypeScript + React
 - 공용 패키지 사용:
-  - `@garangbi/types` (`@types/*`)
-  - `@garangbi/config` (`@config/*`)
+  - `@zzogaebook/types` (`@types/*`)
+  - `@zzogaebook/config` (`@config/*`)
 
 ---
 
@@ -82,7 +82,7 @@ apps/web/src/
 
 - 모든 컴포넌트/함수는 **반드시 TS 타입 명시** (Props, 리턴 타입 등)
 - API 관련 타입은 가능하면 공용 타입 사용:
-  - `@garangbi/types` (`@types/api/...`) 기준
+  - `@zzogaebook/types` (`@types/api/...`) 기준
 
 예:
 
@@ -102,7 +102,7 @@ type GetUserResponse = ApiSuccess<User>;
 ## 6) 환경/설정 사용 규칙
 
 - API Base URL, 환경 구분값 등은 **하드코딩 금지**
-  - `@garangbi/config` 활용
+  - `@zzogaebook/config` 활용
 
 예:
 
@@ -226,8 +226,8 @@ try {
 ## 13) PR 기준 (프론트 전용 체크리스트)
 
 - [ ] 컴포넌트/함수에 타입 명시
-- [ ] 공용 타입이 필요한 곳은 `@garangbi/types` 사용
-- [ ] API Base, 환경 값은 `@garangbi/config` 또는 ENV에서 가져옴
+- [ ] 공용 타입이 필요한 곳은 `@zzogaebook/types` 사용
+- [ ] API Base, 환경 값은 `@zzogaebook/config` 또는 ENV에서 가져옴
 - [ ] 에러 핸들링 최소한의 UX 반영
 - [ ] 불필요한 콘솔/주석/죽은 코드 제거
 

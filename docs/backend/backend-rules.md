@@ -14,8 +14,8 @@
 - Monorepo(pnpm + Turborepo) 환경의 **HTTP API 서버**
 - 대상: `apps/server/*`
 - 공용 패키지:
-  - `packages/types` (`@garangbi/types`, `@types/*`)
-  - `packages/config` (`@garangbi/config`, `@config/*`)
+  - `packages/types` (`@zzogaebook/types`, `@types/*`)
+  - `packages/config` (`@zzogaebook/config`, `@config/*`)
 
 ---
 
