@@ -61,4 +61,18 @@ export default [
       'react/react-in-jsx-scope': 'off',
     },
   },
+
+  // 테스트 (Jest 환경)
+  {
+    files: ['**/*.spec.ts', '**/*.spec.js'],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+      },
+    },
+  },
 ];

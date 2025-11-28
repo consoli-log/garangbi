@@ -46,6 +46,11 @@
   - `apps/server/.env.test`
   - `apps/server/.env.prod`
 
+- 실제 실행용 `.env.*` 파일은 git에 커밋하지 않는다.
+- 대신 동일 구조의 템플릿 파일만 커밋한다:
+  - `apps/server/.env.example`
+- 새 환경을 추가할 때는 먼저 `.env.example`를 추가하고, 실제 값은 로컬에서만 `.env.<env>`에 채운다.
+
 - `NODE_ENV` 값은 **`dev` / `test` / `prod`** 만 사용
 - `ConfigModule.forRoot` 설정 예:
 
@@ -346,6 +351,16 @@ export class CreateUserDto {
 
 - 최소 기준:
   - 핵심 도메인 플로우 e2e 1개 이상
+
+### ✔ Jest 실행 규칙
+
+- 서버 테스트는 Jest 기준으로 실행한다.
+- 루트에서 다음 명령으로 서버 테스트만 실행:
+  - `pnpm test --filter server`
+- 최소 기준:
+  - `apps/server/jest.config.ts` 유지
+  - 핵심 도메인별로 최소 1개 이상의 `*.spec.ts` 파일 작성
+- 프리커밋 훅은 테스트를 강제하지 않지만, 주요 기능 추가 시에는 테스트 추가를 권장한다.
 
 ---
 
