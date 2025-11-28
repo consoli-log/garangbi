@@ -9,7 +9,21 @@
 
 ---
 
-## 1) 범위(Scope)
+## 1) UI 기술 스택 (고정)
+
+- 프레임워크: React + Vite
+- 스타일: Tailwind CSS
+- 컴포넌트: shadcn/ui (Radix UI 기반)
+- 아이콘: shadcn/ui 기본 권장(예: lucide-react), 별도 아이콘 셋 추가 시 문서화 필수
+
+### ✔ 규칙:
+
+- 새로운 화면/컴포넌트는 **항상 Tailwind + shadcn/ui 조합**을 기본으로 사용한다.
+- 별도 UI 라이브러리(Material UI, AntD 등)는 사용하지 않는다. 필요한 컴포넌트는 shadcn/ui 확장 또는 커스텀으로 해결한다.
+
+---
+
+## 2) 범위(Scope)
 
 - 대상: `apps/web/*`
 - 빌드/번들: Vite
@@ -20,7 +34,7 @@
 
 ---
 
-## 2) 기본 폴더 구조
+## 3) 기본 폴더 구조
 
 ```txt
 apps/web/src/
@@ -41,7 +55,7 @@ apps/web/src/
 
 ---
 
-## 3) 네이밍 & 스타일
+## 4) 네이밍 & 스타일
 
 - 파일명:
   - 컴포넌트: `PascalCase.tsx` (예: `UserProfileCard.tsx`)
@@ -64,7 +78,7 @@ apps/web/src/
 
 ---
 
-## 4) 타입 규칙
+## 5) 타입 규칙
 
 - 모든 컴포넌트/함수는 **반드시 TS 타입 명시** (Props, 리턴 타입 등)
 - API 관련 타입은 가능하면 공용 타입 사용:
@@ -85,7 +99,7 @@ type GetUserResponse = ApiSuccess<User>;
 
 ---
 
-## 5) 환경/설정 사용 규칙
+## 6) 환경/설정 사용 규칙
 
 - API Base URL, 환경 구분값 등은 **하드코딩 금지**
   - `@garangbi/config` 활용
@@ -103,7 +117,7 @@ console.log(APP_ENV); // "dev" | "test" | "prod"
 
 ---
 
-## 6) API 호출 규칙
+## 7) API 호출 규칙
 
 - API 호출 코드는 `lib/api/` 아래에서 관리
   (예: `lib/api/http.ts`, `lib/api/userApi.ts`)
@@ -137,7 +151,7 @@ console.log(APP_ENV); // "dev" | "test" | "prod"
 
 ---
 
-## 7) 상태 관리 (초기 규칙)
+## 8) 상태 관리 (초기 규칙)
 
 - 초기 버전:
   - React 내부 state + `useState`, `useReducer`, `useContext` 정도로 해결
@@ -146,7 +160,7 @@ console.log(APP_ENV); // "dev" | "test" | "prod"
 
 ---
 
-## 8) 에러 처리 UX
+## 9) 에러 처리 UX
 
 - API 에러는 최소한:
   - 사용자 메시지 (토스트/알림)
@@ -166,16 +180,28 @@ try {
 
 ---
 
-## 9) 스타일/디자인 (초기)
+## 10) 디자인 컨셉: 네오브루탈리즘
 
-- 초기에는 간단한 CSS/유틸 사용 후,
-  - 필요 시 UI 라이브러리/디자인 시스템 도입
+- 전반적인 톤
+  - 밝은 솔리드 배경 + 강한 컬러 대비 사용
+  - 컬러 수는 최소화(핵심 포인트 컬러 1~2개 + 중립색 위주)
 
-- CSS 방법론(예: Tailwind, CSS-in-JS 등)은 확정 전까지 **과도한 의존 줄이기**
+- 레이아웃 / 박스
+  - 굵은 테두리: 기본 `border-2` 이상, 명확한 구분
+  - 모서리: 기본 `rounded-none` ~ `rounded-md` (과도하게 둥근 모서리 지양)
+  - 여백: card/block 단위로 `p-4` 이상, 답답하지 않게
+
+- 타이포그래피
+  - 기본 폰트: 시스템 폰트 또는 프로젝트 공통 폰트(예: Pretendard) 사용
+  - 제목/본문 계층은 Tailwind 텍스트 스케일에 맞춰 3단계 이상 분리 (`text-xl`, `text-lg`, `text-sm` 등)
+
+- 상태 표현
+  - Hover/Active 상태는 색 대비 또는 테두리 두께 변화로 명확하게 표현
+  - 에러/경고/성공 색상 팔레트는 공통 토큰으로 관리 (예: `text-destructive`, `bg-destructive/10` 등)
 
 ---
 
-## 10) 금지 사항
+## 11) 금지 사항
 
 - `any` 무분별 사용
 - API base URL 하드코딩 (`http://localhost:3000/api/v1` 등)
@@ -185,7 +211,7 @@ try {
 
 ---
 
-## 11) 린트 / 포맷 규칙
+## 12) 린트 / 포맷 규칙
 
 - 프론트엔드는 루트의 공통 설정을 사용한다.
   - ESLint: `eslint.config.mjs`
@@ -197,7 +223,7 @@ try {
 
 ---
 
-## 12) PR 기준 (프론트 전용 체크리스트)
+## 13) PR 기준 (프론트 전용 체크리스트)
 
 - [ ] 컴포넌트/함수에 타입 명시
 - [ ] 공용 타입이 필요한 곳은 `@garangbi/types` 사용
