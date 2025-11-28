@@ -243,7 +243,7 @@ export function EmailSignupForm() {
         <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
-            className="mt-1 h-5 w-5 rounded border-2 border-black accent-brand-accent"
+            className="mt-1 h-5 w-5 rounded border-2 border-black accent-brand-secondary"
             checked={form.agreePrivacy}
             onChange={(event) => updateField('agreePrivacy', event.target.checked)}
           />
