@@ -3,7 +3,15 @@
   "compilerOptions": {
     "module": "CommonJS",
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "paths": {
+      "@types/*": ["packages/types/src/*"],
+      "@zzogaebook/types": ["packages/types/dist/index"],
+      "@zzogaebook/types/*": ["packages/types/dist/*"],
+      "@config/*": ["packages/config/src/*"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

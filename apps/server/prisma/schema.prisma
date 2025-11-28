@@ -7,10 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AccountStatus {
+  PENDING
+  ACTIVE
+}
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String         @id @default(cuid())
+  email           String         @unique
+  nickname        String         @unique
+  passwordHash    String
+  status          AccountStatus  @default(PENDING)
+  termsAgreedAt   DateTime?
+  privacyAgreedAt DateTime?
+  emailVerifiedAt DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
