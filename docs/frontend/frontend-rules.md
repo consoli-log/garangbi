@@ -185,7 +185,19 @@ try {
 
 ---
 
-## 11) PR 기준 (프론트 전용 체크리스트)
+## 11) 린트 / 포맷 규칙
+
+- 프론트엔드는 루트의 공통 설정을 사용한다.
+  - ESLint: `eslint.config.mjs`
+  - Prettier: `.prettierrc`
+- `apps/web` 내부에 별도 ESLint / Prettier 설정 파일을 추가하지 않는다.
+- 린트 / 포맷 명령:
+  - `pnpm lint` (루트에서 전체 검사)
+  - `pnpm format` (루트에서 전체 포맷)
+
+---
+
+## 12) PR 기준 (프론트 전용 체크리스트)
 
 - [ ] 컴포넌트/함수에 타입 명시
 - [ ] 공용 타입이 필요한 곳은 `@garangbi/types` 사용

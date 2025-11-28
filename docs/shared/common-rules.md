@@ -145,7 +145,21 @@ chore: 불필요한 주석 제거
 
 ---
 
-## 6) 브랜치 전략 (Branch Strategy)
+## 6) 코드 스타일 자동화 (ESLint / Prettier / Husky)
+
+- 루트 기준 단일 ESLint / Prettier 설정 사용
+  - `pnpm lint` → 전체 워크스페이스 ESLint 검사
+  - `pnpm format` → 전체 워크스페이스 Prettier 포맷
+- `husky + lint-staged` 프리커밋 훅 필수:
+  - staged된 `*.{ts,tsx,js,jsx}`: `eslint --fix` 후 `prettier --write`
+  - staged된 `*.{json,md,css,html}`: `prettier --write`
+- 규칙:
+  - ESLint/Prettier 에러 상태에서는 **커밋 금지(훅을 끄지 않는다)**.
+  - 규칙 변경 시 `eslint.config.mjs`, `.prettierrc`, `lint-staged` 설정을 수정하고 PR에 사유를 남긴다.
+
+---
+
+## 7) 브랜치 전략 (Branch Strategy)
 
 ### ✔ main
 
@@ -170,7 +184,7 @@ chore: 불필요한 주석 제거
 
 ---
 
-## 7) 코드 스타일 공통 규칙
+## 8) 코드 스타일 공통 규칙
 
 ### ✔ 포맷팅
 
@@ -186,7 +200,7 @@ chore: 불필요한 주석 제거
 
 ---
 
-## 8) 시크릿/보안 규칙
+## 9) 시크릿/보안 규칙
 
 ### ✔ 금지
 
@@ -202,7 +216,7 @@ chore: 불필요한 주석 제거
 
 ---
 
-## 9) 테스트/운영 규칙
+## 10) 테스트/운영 규칙
 
 ### ✔ 테스트
 
@@ -216,7 +230,7 @@ chore: 불필요한 주석 제거
 
 ---
 
-## 10) 모노레포 규칙 (공통)
+## 11) 모노레포 규칙 (공통)
 
 ### ✔ apps/\* 는 서비스
 
