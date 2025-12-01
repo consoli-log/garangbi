@@ -28,3 +28,16 @@ export interface EmailCheckResponseData {
 }
 
 export type EmailCheckResponse = ApiSuccess<EmailCheckResponseData>;
+
+export interface VerifyEmailRequest {
+  email: string;
+  token: string;
+}
+
+export interface VerifyEmailResponseData {
+  email: string;
+  status: AccountStatus;
+  message: string;
+}
+
+export type VerifyEmailResponse = ApiSuccess<VerifyEmailResponseData>;

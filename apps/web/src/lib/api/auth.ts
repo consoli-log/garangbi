@@ -1,4 +1,10 @@
-import type { EmailCheckResponseData, EmailSignupRequest, EmailSignupResponseData } from '@zzogaebook/types';
+import type {
+  EmailCheckResponseData,
+  EmailSignupRequest,
+  EmailSignupResponseData,
+  VerifyEmailRequest,
+  VerifyEmailResponseData,
+} from '@zzogaebook/types';
 import { apiPost } from './http';
 
 export function emailSignup(payload: EmailSignupRequest): Promise<EmailSignupResponseData> {
@@ -7,4 +13,8 @@ export function emailSignup(payload: EmailSignupRequest): Promise<EmailSignupRes
 
 export function checkEmailAvailability(email: string): Promise<EmailCheckResponseData> {
   return apiPost<EmailCheckResponseData>('/auth/email-check', { email });
+}
+
+export function verifyEmail(payload: VerifyEmailRequest): Promise<VerifyEmailResponseData> {
+  return apiPost<VerifyEmailResponseData>('/auth/verify-email', payload);
 }
