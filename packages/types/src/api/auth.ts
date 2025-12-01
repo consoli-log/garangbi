@@ -21,3 +21,10 @@ export interface EmailSignupResponseData {
 }
 
 export type EmailSignupResponse = ApiSuccess<EmailSignupResponseData>;
+
+export interface EmailCheckResponseData {
+  valid: boolean;
+  message: string;
+}
+
+export type EmailCheckResponse = ApiSuccess<EmailCheckResponseData>;
