@@ -2,6 +2,7 @@ import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { EmailSignupDto } from './dto/email-signup.dto';
 import { EmailCheckDto } from './dto/email-check.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -17,5 +18,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   checkEmail(@Body() dto: EmailCheckDto) {
     return this.authService.checkEmailAvailability(dto.email);
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  verifyEmail(@Body() dto: VerifyEmailDto) {
+    return this.authService.verifyEmail(dto);
   }
 }
