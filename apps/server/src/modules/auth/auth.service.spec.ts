@@ -7,6 +7,7 @@ describe('AuthService', () => {
   const prisma = {
     user: {
       findFirst: jest.fn(),
+      findUnique: jest.fn(),
       create: jest.fn(),
     },
   } as unknown as PrismaService;
@@ -17,7 +18,7 @@ describe('AuthService', () => {
     jest.clearAllMocks();
   });
 
-  it('should throw conflict when duplicated email exists', async () => {
+  it('이메일이 중복이면 Conflict 예외를 던진다', async () => {
     (prisma.user.findFirst as jest.Mock).mockResolvedValue({
       email: 'test@example.com',
       nickname: 'tester',
@@ -35,7 +36,7 @@ describe('AuthService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('should create pending user', async () => {
+  it('중복이 없으면 PENDING 상태 사용자로 가입시킨다', async () => {
     (prisma.user.findFirst as jest.Mock).mockResolvedValue(null);
     (prisma.user.create as jest.Mock).mockResolvedValue({
       id: 'user_1',
@@ -56,5 +57,27 @@ describe('AuthService', () => {
     expect(prisma.user.create).toHaveBeenCalled();
     expect(result.status).toBe(AccountStatus.PENDING);
     expect(result.nextStep).toBe('VERIFY_EMAIL');
+  });
+
+  it('이메일이 이미 존재하면 valid=false를 반환한다', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+      id: 'user_1',
+    });
+
+    const result = await service.checkEmailAvailability('test@example.com');
+
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { email: 'test@example.com' },
+      select: { id: true },
+    });
+    expect(result.valid).toBe(false);
+  });
+
+  it('이메일이 없으면 valid=true를 반환한다', async () => {
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+
+    const result = await service.checkEmailAvailability('unique@example.com');
+
+    expect(result.valid).toBe(true);
   });
 });

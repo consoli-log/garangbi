@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { hashPassword } from '../../common/utils/password.util';
 import { EmailSignupDto } from './dto/email-signup.dto';
 import { AccountStatus } from '@prisma/client';
-import type { EmailSignupResponseData } from '@zzogaebook/types';
+import type { EmailCheckResponseData, EmailSignupResponseData } from '@zzogaebook/types';
 
 @Injectable()
 export class AuthService {
@@ -55,6 +55,29 @@ export class AuthService {
       status: user.status,
       nextStep: 'VERIFY_EMAIL',
       message: '가입 신청이 완료되었습니다. 이메일을 확인해 주세요.',
+    };
+  }
+
+  async checkEmailAvailability(email: string): Promise<EmailCheckResponseData> {
+    const existing = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existing) {
+      return {
+        valid: false,
+        message: '이미 사용 중인 이메일입니다.',
+      };
+    }
+
+    return {
+      valid: true,
+      message: '사용 가능한 이메일입니다.',
     };
   }
 }

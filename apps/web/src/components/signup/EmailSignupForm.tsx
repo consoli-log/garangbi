@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { EmailSignupRequest, EmailSignupResponseData } from '@zzogaebook/types';
-import { emailSignup } from '../../lib/api/auth';
+import { checkEmailAvailability, emailSignup } from '../../lib/api/auth';
 import { ApiClientError } from '../../lib/api/http';
 import {
   initialSignupValues,
@@ -33,6 +33,18 @@ const createAllTouched = (): TouchedState =>
     {} as TouchedState,
   );
 
+type EmailCheckStatus = {
+  loading: boolean;
+  valid: boolean | null;
+  message: string | null;
+};
+
+const createInitialEmailCheckStatus = (): EmailCheckStatus => ({
+  loading: false,
+  valid: null,
+  message: null,
+});
+
 export function EmailSignupForm() {
   const [form, setForm] = useState<EmailSignupRequest>(initialSignupValues);
   const [touched, setTouched] = useState<TouchedState>(() => createInitialTouched());
@@ -40,8 +52,19 @@ export function EmailSignupForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [successPayload, setSuccessPayload] = useState<EmailSignupResponseData | null>(null);
+  const emailCheckRequestId = useRef(0);
+  const [emailCheckStatus, setEmailCheckStatus] = useState<EmailCheckStatus>(() =>
+    createInitialEmailCheckStatus(),
+  );
+  const [lastCheckedEmail, setLastCheckedEmail] = useState<string | null>(null);
 
   const isValid = useMemo(() => isSignupFormValid(errors), [errors]);
+
+  const resetEmailCheckStatus = () => {
+    emailCheckRequestId.current += 1;
+    setEmailCheckStatus(createInitialEmailCheckStatus());
+    setLastCheckedEmail(null);
+  };
 
   const updateField = (field: keyof EmailSignupRequest, value: string | boolean) => {
     if (successPayload) {
@@ -53,6 +76,10 @@ export function EmailSignupForm() {
 
     setForm((prev) => {
       const nextForm = { ...prev, [field]: value } as EmailSignupRequest;
+      if (field === 'email' && typeof value === 'string' && prev.email !== value) {
+        resetEmailCheckStatus();
+      }
+
       setErrors((prevErrors) => {
         const nextErrors: SignupErrors = {
           ...prevErrors,
@@ -75,6 +102,56 @@ export function EmailSignupForm() {
     setTouched((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
   };
 
+  const handleEmailBlur = async () => {
+    updateField('email', form.email);
+
+    const validationMessage = validateSignupField('email', form.email, form);
+    if (validationMessage) {
+      return;
+    }
+
+    const normalizedEmail = form.email.trim();
+    if (!normalizedEmail) {
+      return;
+    }
+
+    if (lastCheckedEmail === normalizedEmail && emailCheckStatus.valid !== null) {
+      return;
+    }
+
+    const requestId = ++emailCheckRequestId.current;
+    setEmailCheckStatus({
+      loading: true,
+      valid: null,
+      message: '이메일 사용 가능 여부를 확인하고 있어요.',
+    });
+
+    try {
+      const payload = await checkEmailAvailability(normalizedEmail);
+      if (requestId !== emailCheckRequestId.current) {
+        return;
+      }
+      setEmailCheckStatus({
+        loading: false,
+        valid: payload.valid,
+        message: payload.message,
+      });
+      setLastCheckedEmail(normalizedEmail);
+    } catch (error) {
+      if (requestId !== emailCheckRequestId.current) {
+        return;
+      }
+      const fallbackMessage = '이메일 중복 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+      const message = error instanceof ApiClientError ? error.message : fallbackMessage;
+      setEmailCheckStatus({
+        loading: false,
+        valid: false,
+        message,
+      });
+      setLastCheckedEmail(null);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const validation = validateSignupForm(form);
@@ -94,11 +171,23 @@ export function EmailSignupForm() {
       setForm(initialSignupValues);
       setTouched(createInitialTouched());
       setErrors(validateSignupForm(initialSignupValues));
+      resetEmailCheckStatus();
     } catch (error) {
       setSuccessPayload(null);
       if (error instanceof ApiClientError) {
-        const message = error.response?.error.message;
-        setServerError(Array.isArray(message) ? message.join(', ') : message ?? error.message);
+        const rawMessage = error.response?.error.message;
+        const resolvedMessage = Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage ?? error.message;
+        setServerError(resolvedMessage);
+        if (error.response?.error.code === 'ACC_EMAIL_DUPLICATED') {
+          emailCheckRequestId.current += 1;
+          const normalizedEmail = form.email.trim();
+          setEmailCheckStatus({
+            loading: false,
+            valid: false,
+            message: resolvedMessage,
+          });
+          setLastCheckedEmail(normalizedEmail || null);
+        }
       } else {
         setServerError('요청 중 문제가 발생했습니다.');
       }
@@ -148,9 +237,26 @@ export function EmailSignupForm() {
             placeholder="name@example.com"
             value={form.email}
             onChange={(event) => updateField('email', event.target.value)}
-            onBlur={() => updateField('email', form.email)}
+            onBlur={handleEmailBlur}
           />
-          {fieldHasError('email') && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+          {fieldHasError('email') ? (
+            <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+          ) : (
+            emailCheckStatus.message && (
+              <p
+                className={cn(
+                  'mt-1 text-sm',
+                  emailCheckStatus.loading
+                    ? 'text-black/60'
+                    : emailCheckStatus.valid
+                      ? 'text-emerald-600'
+                      : 'text-red-600',
+                )}
+              >
+                {emailCheckStatus.message}
+              </p>
+            )
+          )}
         </div>
 
         <div>
