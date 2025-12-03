@@ -41,3 +41,22 @@ export interface VerifyEmailResponseData {
 }
 
 export type VerifyEmailResponse = ApiSuccess<VerifyEmailResponseData>;
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+export interface LoginResponseData {
+  userId: string;
+  email: string;
+  nickname: string;
+  status: AccountStatus;
+  accessToken: string;
+  tokenType: 'Bearer';
+  expiresIn: number;
+  message: string;
+}
+
+export type LoginResponse = ApiSuccess<LoginResponseData>;

@@ -1,5 +1,6 @@
 import { EmailSignupPage } from './pages/EmailSignupPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
+import { LoginPage } from './pages/LoginPage';
 
 function resolvePathname() {
   const path = window.location.pathname.replace(/\/+$/, '');
@@ -14,6 +15,10 @@ export default function App() {
 
   if (pathname === '/verify-email') {
     return <VerifyEmailPage />;
+  }
+
+  if (pathname === '/login') {
+    return <LoginPage />;
   }
 
   return <EmailSignupPage />;

@@ -16,6 +16,13 @@ export function EmailSignupPage() {
 
       <main className="mx-auto w-full max-w-2xl rounded-3xl border-2 border-black bg-white p-6 shadow-card ring-2 ring-black/5 md:p-10">
         <EmailSignupForm />
+        <p className="mt-6 text-center text-xs text-black/60">
+          이미 계정이 있다면{' '}
+          <a href="/login" className="font-semibold text-brand-secondary underline">
+            로그인
+          </a>
+          으로 이동해 주세요.
+        </p>
       </main>
     </div>
   );
