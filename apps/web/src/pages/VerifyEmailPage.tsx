@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { verifyEmail } from '../lib/api/auth';
 import { ApiClientError } from '../lib/api/http';
 import { cn } from '../lib/utils';
@@ -9,8 +9,14 @@ export function VerifyEmailPage() {
   const [state, setState] = useState<VerifyState>('loading');
   const [message, setMessage] = useState('이메일 인증을 확인하고 있어요...');
   const [email, setEmail] = useState<string | null>(null);
+  const didRequestRef = useRef(false);
 
   useEffect(() => {
+    if (didRequestRef.current) {
+      return;
+    }
+    didRequestRef.current = true;
+
     const params = new URLSearchParams(window.location.search);
     const emailParam = params.get('email');
     const tokenParam = params.get('token');
@@ -30,8 +36,16 @@ export function VerifyEmailPage() {
       .catch((error) => {
         const fallback = '인증에 실패했습니다. 링크가 만료되었을 수 있어요.';
         if (error instanceof ApiClientError) {
-          const rawMessage = error.response?.error.message;
-          setMessage(Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage ?? fallback);
+          const apiMessage = error.response?.error.message;
+          const resolvedMessage = Array.isArray(apiMessage)
+            ? apiMessage.join(', ')
+            : apiMessage ?? fallback;
+          if (error.response?.error.code === 'ACC_ALREADY_VERIFIED') {
+            setMessage(resolvedMessage);
+            setState('success');
+            return;
+          }
+          setMessage(resolvedMessage);
         } else {
           setMessage(fallback);
         }
@@ -86,4 +100,3 @@ export function VerifyEmailPage() {
     </div>
   );
 }
-
