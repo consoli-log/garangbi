@@ -5,6 +5,7 @@ import { AccountStatus } from '@prisma/client';
 import { MailService } from '../mail/mail.service';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
+import { hashPassword } from '../../common/utils/password.util';
 
 describe('AuthService', () => {
   const prisma = {
@@ -25,14 +26,21 @@ describe('AuthService', () => {
     sendEmailVerification: jest.fn(),
   } as unknown as MailService;
   const configService = {
-    get: jest.fn((key: string) => {
-      if (key === 'auth.emailVerification.baseUrl') {
-        return 'http://localhost:5173/verify-email';
+    getOrThrow: jest.fn((key: string) => {
+      switch (key) {
+        case 'auth.emailVerification.baseUrl':
+          return 'http://localhost:5173/verify-email';
+        case 'auth.emailVerification.tokenTtlMinutes':
+          return 60;
+        case 'jwt.secret':
+          return 'test-secret';
+        case 'jwt.accessTokenTtlMinutes':
+          return 60;
+        case 'jwt.rememberMeAccessTokenTtlMinutes':
+          return 60 * 24;
+        default:
+          throw new Error(`Unknown config key: ${key}`);
       }
-      if (key === 'auth.emailVerification.tokenTtlMinutes') {
-        return 60;
-      }
-      return undefined;
     }),
   } as unknown as ConfigService;
 
@@ -164,6 +172,64 @@ describe('AuthService', () => {
       service.verifyEmail({
         email: 'unknown@example.com',
         token: 'token',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('로그인 성공 시 토큰과 사용자 정보를 반환한다', async () => {
+    const passwordHash = await hashPassword('password1234');
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+      id: 'user_1',
+      email: 'active@example.com',
+      nickname: 'tester',
+      passwordHash,
+      status: AccountStatus.ACTIVE,
+    });
+
+    const result = await service.login({
+      email: 'active@example.com',
+      password: 'password1234',
+      rememberMe: false,
+    });
+
+    expect(result.email).toBe('active@example.com');
+    expect(result.accessToken).toEqual(expect.any(String));
+    expect(result.tokenType).toBe('Bearer');
+    expect(result.expiresIn).toBe(60 * 60);
+  });
+
+  it('이메일 인증되지 않은 계정이면 예외를 던진다', async () => {
+    const passwordHash = await hashPassword('password1234');
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+      id: 'user_1',
+      email: 'pending@example.com',
+      nickname: 'tester',
+      passwordHash,
+      status: AccountStatus.PENDING,
+    });
+
+    await expect(
+      service.login({
+        email: 'pending@example.com',
+        password: 'password1234',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('잘못된 비밀번호면 예외를 던진다', async () => {
+    const passwordHash = await hashPassword('password1234');
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+      id: 'user_1',
+      email: 'active@example.com',
+      nickname: 'tester',
+      passwordHash,
+      status: AccountStatus.ACTIVE,
+    });
+
+    await expect(
+      service.login({
+        email: 'active@example.com',
+        password: 'wrong-password',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
