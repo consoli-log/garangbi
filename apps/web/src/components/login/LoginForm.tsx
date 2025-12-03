@@ -39,7 +39,12 @@ export function LoginForm() {
     setServerError(null);
     try {
       const payload = await login(form);
-      setSession(payload.accessToken, payload.expiresIn);
+      setSession(payload.accessToken, payload.expiresIn, {
+        id: payload.userId,
+        email: payload.email,
+        nickname: payload.nickname,
+        status: payload.status,
+      });
       setSuccessPayload(payload);
       setForm((prev) => ({
         ...initialForm,
