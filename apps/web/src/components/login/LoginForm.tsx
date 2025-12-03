@@ -4,6 +4,7 @@ import type { LoginRequest, LoginResponseData } from '@zzogaebook/types';
 import { login } from '../../lib/api/auth';
 import { ApiClientError } from '../../lib/api/http';
 import { cn } from '../../lib/utils';
+import { useAuthStore } from '../../stores/authStore';
 
 const initialForm: LoginRequest = {
   email: '',
@@ -16,6 +17,7 @@ export function LoginForm() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successPayload, setSuccessPayload] = useState<LoginResponseData | null>(null);
+  const setSession = useAuthStore((state) => state.setSession);
 
   const updateField = (field: keyof LoginRequest, value: string | boolean) => {
     setServerError(null);
@@ -37,11 +39,15 @@ export function LoginForm() {
     setServerError(null);
     try {
       const payload = await login(form);
+      setSession(payload.accessToken, payload.expiresIn);
       setSuccessPayload(payload);
       setForm((prev) => ({
         ...initialForm,
         rememberMe: prev.rememberMe,
       }));
+      window.setTimeout(() => {
+        window.location.href = '/';
+      }, 800);
     } catch (error) {
       setSuccessPayload(null);
       if (error instanceof ApiClientError) {
@@ -70,11 +76,14 @@ export function LoginForm() {
         <div className="rounded-2xl border-2 border-emerald-600 bg-emerald-50 p-4 text-sm text-emerald-900">
           <p className="font-semibold">{successPayload.message}</p>
           <p className="mt-2 text-xs text-emerald-800">
-            토큰 만료까지 약 {Math.floor(successPayload.expiresIn / 60)}분 남았습니다.
+            로그인 상태가 유지되는 동안 언제든 대시보드로 이동할 수 있어요.
           </p>
-          <p className="mt-2 truncate text-[11px] text-emerald-700">
-            토큰: <span className="font-mono">{successPayload.accessToken}</span>
-          </p>
+          <a
+            href="/"
+            className="mt-3 inline-flex items-center justify-center rounded-xl border border-emerald-600 px-4 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-600 hover:text-white"
+          >
+            홈으로 이동
+          </a>
         </div>
       )}
 

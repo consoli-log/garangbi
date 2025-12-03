@@ -1,6 +1,32 @@
+import { useEffect } from 'react';
 import { LoginForm } from '../components/login/LoginForm';
+import { useAuthStore, authSelectors } from '../stores/authStore';
 
 export function LoginPage() {
+  const hydrate = useAuthStore((state) => state.hydrate);
+  const initialized = useAuthStore(authSelectors.initialized);
+  const isAuthenticated = useAuthStore(authSelectors.isAuthenticated);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  useEffect(() => {
+    if (initialized && isAuthenticated) {
+      window.location.href = '/';
+    }
+  }, [initialized, isAuthenticated]);
+
+  if (!initialized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white text-brand-primary">
+        <p className="rounded-2xl border-2 border-black px-6 py-4 text-sm font-semibold">
+          로그인 상태를 확인하고 있어요...
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col px-4 py-10 text-brand-primary md:px-8 lg:px-12">
       <header className="mx-auto w-full max-w-2xl pb-8 text-center">
