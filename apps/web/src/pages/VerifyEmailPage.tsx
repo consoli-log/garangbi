@@ -53,6 +53,16 @@ export function VerifyEmailPage() {
       });
   }, []);
 
+  useEffect(() => {
+    if (state !== 'success') {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      window.location.href = '/login';
+    }, 2000);
+    return () => window.clearTimeout(timer);
+  }, [state]);
+
   const isSuccess = state === 'success';
 
   return (
@@ -85,15 +95,18 @@ export function VerifyEmailPage() {
 
         <div className="mt-8 space-y-3">
           <a
-            href="/"
+            href="/login"
             className="block w-full rounded-2xl border-2 border-black bg-brand-secondary px-4 py-3 text-center text-sm font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-brand-secondary/90"
           >
-            홈으로 돌아가기
+            로그인하러 가기
           </a>
           {!isSuccess && (
             <p className="text-center text-xs text-black/60">
-              링크가 만료되었다면 회원가입 화면에서 인증 메일을 다시 요청해 주세요.
+              링크가 만료되었다면 로그인 화면에서 인증 메일을 다시 요청해 주세요.
             </p>
+          )}
+          {isSuccess && (
+            <p className="text-center text-xs text-black/60">2초 후 로그인 페이지로 이동합니다.</p>
           )}
         </div>
       </main>
