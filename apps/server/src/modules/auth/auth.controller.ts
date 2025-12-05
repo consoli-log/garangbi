@@ -5,6 +5,7 @@ import { EmailCheckDto } from './dto/email-check.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { NicknameCheckDto } from './dto/nickname-check.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -20,6 +21,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   checkEmail(@Body() dto: EmailCheckDto) {
     return this.authService.checkEmailAvailability(dto.email);
+  }
+
+  @Post('nickname-check')
+  @HttpCode(HttpStatus.OK)
+  checkNickname(@Body() dto: NicknameCheckDto) {
+    return this.authService.checkNicknameAvailability(dto.nickname);
   }
 
   @Post('verify-email')

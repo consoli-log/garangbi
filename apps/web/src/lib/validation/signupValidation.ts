@@ -23,7 +23,7 @@ export const initialSignupValues: EmailSignupRequest = {
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const nicknamePattern = /^[가-힣a-zA-Z0-9_]{2,20}$/;
+const nicknamePattern = /^[가-힣a-zA-Z0-9_ ]{2,20}$/;
 
 export function validateSignupField(
   field: SignupField,
@@ -44,7 +44,7 @@ export function validateSignupField(
         return '닉네임을 입력해 주세요.';
       }
       if (!nicknamePattern.test(value)) {
-        return '닉네임은 2~20자의 한글, 영문, 숫자, 밑줄만 사용할 수 있어요.';
+        return '닉네임은 2~20자의 한글, 영문, 숫자, 밑줄, 공백을 사용할 수 있어요.';
       }
       return null;
     case 'password':
