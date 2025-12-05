@@ -10,6 +10,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | string[] = 'Internal server error';
     let code: string | undefined;
+    let extra: Record<string, unknown> = {};
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -21,6 +22,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const r = res as any;
         message = r.message ?? message;
         code = r.code ?? code;
+        // 추가 필드(예: canResend 등)는 그대로 전달해 클라이언트 분기 용도로 활용.
+        extra = Object.fromEntries(
+          Object.entries(r).filter(([key]) => key !== 'message' && key !== 'code'),
+        );
       }
     }
 
@@ -32,6 +37,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         status,
         path: (request as any)?.url,
         timestamp: new Date().toISOString(),
+        ...extra,
       },
     });
   }

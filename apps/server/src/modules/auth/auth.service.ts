@@ -1,10 +1,11 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { hashPassword, verifyPassword } from '../../common/utils/password.util';
 import { EmailSignupDto } from './dto/email-signup.dto';
 import { AccountStatus } from '@prisma/client';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { MailService } from '../mail/mail.service';
 import { createHash, randomBytes } from 'crypto';
 import type {
@@ -23,6 +24,7 @@ export class AuthService {
   private readonly jwtSecret: string;
   private readonly jwtAccessTokenTtlSeconds: number;
   private readonly jwtRememberMeTokenTtlSeconds: number;
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -93,7 +95,16 @@ export class AuthService {
       },
     });
 
-    await this.issueVerificationToken(user.id, user.email);
+    try {
+      await this.issueVerificationToken(user.id, user.email);
+    } catch (error) {
+      await this.safeDeleteUser(user.id);
+      this.logger.error('이메일 인증 메일 발송 실패로 신규 계정을 롤백했습니다.', error as Error);
+      throw new InternalServerErrorException({
+        code: 'ACC_EMAIL_SEND_FAILED',
+        message: '인증 메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.',
+      });
+    }
 
     return {
       userId: user.id,
@@ -244,6 +255,7 @@ export class AuthService {
       throw new BadRequestException({
         code: 'ACC_LOGIN_PENDING',
         message: '이메일 인증이 완료되지 않았습니다. 메일함을 확인해 주세요.',
+        canResend: true,
       });
     }
 
@@ -325,10 +337,59 @@ export class AuthService {
     return expiresAt;
   }
 
+  async resendEmailVerification(dto: ResendVerificationDto): Promise<VerifyEmailResponseData> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+      select: {
+        id: true,
+        email: true,
+        status: true,
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException({
+        code: 'ACC_RESEND_INVALID',
+        message: '가입 정보를 찾을 수 없습니다. 이메일을 확인해주세요.',
+      });
+    }
+
+    if (user.status === AccountStatus.ACTIVE) {
+      throw new BadRequestException({
+        code: 'ACC_ALREADY_VERIFIED',
+        message: '이미 인증이 완료된 계정입니다. 로그인해주세요.',
+      });
+    }
+
+    try {
+      await this.issueVerificationToken(user.id, user.email);
+    } catch (error) {
+      this.logger.error('인증 메일 재발송 실패', error as Error);
+      throw new InternalServerErrorException({
+        code: 'ACC_EMAIL_SEND_FAILED',
+        message: '인증 메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.',
+      });
+    }
+
+    return {
+      email: user.email,
+      status: user.status,
+      message: '인증 메일을 다시 보냈습니다. 메일함을 확인해주세요.',
+    };
+  }
+
   private buildVerificationUrl(email: string, token: string): string {
     const url = new URL(this.emailVerificationBaseUrl);
     url.searchParams.set('email', email);
     url.searchParams.set('token', token);
     return url.toString();
+  }
+
+  private async safeDeleteUser(userId: string) {
+    try {
+      await this.prisma.user.delete({ where: { id: userId } });
+    } catch (error) {
+      this.logger.error('메일 발송 실패 후 신규 계정 삭제 중 오류가 발생했습니다.', error as Error);
+    }
   }
 }
