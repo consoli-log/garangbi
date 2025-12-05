@@ -24,6 +24,11 @@ export const initialSignupValues: EmailSignupRequest = {
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const nicknamePattern = /^[가-힣a-zA-Z0-9_ ]{2,20}$/;
+const passwordMinLength = 8;
+const uppercasePattern = /[A-Z]/;
+const lowercasePattern = /[a-z]/;
+const digitPattern = /[0-9]/;
+const specialPattern = /[^A-Za-z0-9]/;
 
 export function validateSignupField(
   field: SignupField,
@@ -51,11 +56,20 @@ export function validateSignupField(
       if (!value || typeof value !== 'string') {
         return '비밀번호를 입력해 주세요.';
       }
-      if (value.length < 8) {
+      if (value.length < passwordMinLength) {
         return '비밀번호는 8자 이상이어야 합니다.';
       }
-      if (!/[0-9]/.test(value) || !/[A-Za-z]/.test(value)) {
-        return '영문과 숫자를 조합해 주세요.';
+      if (!uppercasePattern.test(value)) {
+        return '대문자를 최소 1자 포함해 주세요.';
+      }
+      if (!lowercasePattern.test(value)) {
+        return '소문자를 최소 1자 포함해 주세요.';
+      }
+      if (!digitPattern.test(value)) {
+        return '숫자를 최소 1자 포함해 주세요.';
+      }
+      if (!specialPattern.test(value)) {
+        return '특수문자를 최소 1자 포함해 주세요.';
       }
       return null;
     case 'passwordConfirm':
@@ -85,3 +99,11 @@ export function validateSignupForm(form: EmailSignupRequest): SignupErrors {
 export function isSignupFormValid(errors: SignupErrors): boolean {
   return signupFields.every((field) => !errors[field]);
 }
+
+export const passwordRules = {
+  minLength: passwordMinLength,
+  hasUpper: (value: string) => uppercasePattern.test(value),
+  hasLower: (value: string) => lowercasePattern.test(value),
+  hasDigit: (value: string) => digitPattern.test(value),
+  hasSpecial: (value: string) => specialPattern.test(value),
+};
