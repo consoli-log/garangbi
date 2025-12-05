@@ -29,6 +29,17 @@ export interface EmailCheckResponseData {
 
 export type EmailCheckResponse = ApiSuccess<EmailCheckResponseData>;
 
+export interface NicknameCheckRequest {
+  nickname: string;
+}
+
+export interface NicknameCheckResponseData {
+  valid: boolean;
+  message: string;
+}
+
+export type NicknameCheckResponse = ApiSuccess<NicknameCheckResponseData>;
+
 export interface VerifyEmailRequest {
   email: string;
   token: string;

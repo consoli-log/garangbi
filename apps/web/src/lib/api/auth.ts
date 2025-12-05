@@ -4,6 +4,8 @@ import type {
   EmailSignupResponseData,
   LoginRequest,
   LoginResponseData,
+  NicknameCheckRequest,
+  NicknameCheckResponseData,
   ResendVerificationRequest,
   ResendVerificationResponseData,
   VerifyEmailRequest,
@@ -17,6 +19,12 @@ export function emailSignup(payload: EmailSignupRequest): Promise<EmailSignupRes
 
 export function checkEmailAvailability(email: string): Promise<EmailCheckResponseData> {
   return apiPost<EmailCheckResponseData>('/auth/email-check', { email });
+}
+
+export function checkNicknameAvailability(
+  nickname: string,
+): Promise<NicknameCheckResponseData> {
+  return apiPost<NicknameCheckResponseData>('/auth/nickname-check', { nickname });
 }
 
 export function verifyEmail(payload: VerifyEmailRequest): Promise<VerifyEmailResponseData> {

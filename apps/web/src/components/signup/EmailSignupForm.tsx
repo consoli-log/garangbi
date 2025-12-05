@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { EmailSignupRequest, EmailSignupResponseData } from '@zzogaebook/types';
-import { checkEmailAvailability, emailSignup } from '../../lib/api/auth';
+import { checkEmailAvailability, checkNicknameAvailability, emailSignup } from '../../lib/api/auth';
 import { ApiClientError } from '../../lib/api/http';
 import {
   initialSignupValues,
@@ -53,10 +53,15 @@ export function EmailSignupForm() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [successPayload, setSuccessPayload] = useState<EmailSignupResponseData | null>(null);
   const emailCheckRequestId = useRef(0);
+  const nicknameCheckRequestId = useRef(0);
   const [emailCheckStatus, setEmailCheckStatus] = useState<EmailCheckStatus>(() =>
     createInitialEmailCheckStatus(),
   );
+  const [nicknameCheckStatus, setNicknameCheckStatus] = useState<EmailCheckStatus>(() =>
+    createInitialEmailCheckStatus(),
+  );
   const [lastCheckedEmail, setLastCheckedEmail] = useState<string | null>(null);
+  const [lastCheckedNickname, setLastCheckedNickname] = useState<string | null>(null);
 
   const isValid = useMemo(() => isSignupFormValid(errors), [errors]);
 
@@ -64,6 +69,12 @@ export function EmailSignupForm() {
     emailCheckRequestId.current += 1;
     setEmailCheckStatus(createInitialEmailCheckStatus());
     setLastCheckedEmail(null);
+  };
+
+  const resetNicknameCheckStatus = () => {
+    nicknameCheckRequestId.current += 1;
+    setNicknameCheckStatus(createInitialEmailCheckStatus());
+    setLastCheckedNickname(null);
   };
 
   const updateField = (field: keyof EmailSignupRequest, value: string | boolean) => {
@@ -78,6 +89,9 @@ export function EmailSignupForm() {
       const nextForm = { ...prev, [field]: value } as EmailSignupRequest;
       if (field === 'email' && typeof value === 'string' && prev.email !== value) {
         resetEmailCheckStatus();
+      }
+      if (field === 'nickname' && typeof value === 'string' && prev.nickname !== value) {
+        resetNicknameCheckStatus();
       }
 
       setErrors((prevErrors) => {
@@ -152,6 +166,56 @@ export function EmailSignupForm() {
     }
   };
 
+  const handleNicknameBlur = async () => {
+    updateField('nickname', form.nickname);
+
+    const validationMessage = validateSignupField('nickname', form.nickname, form);
+    if (validationMessage) {
+      return;
+    }
+
+    const normalizedNickname = form.nickname.trim();
+    if (!normalizedNickname) {
+      return;
+    }
+
+    if (lastCheckedNickname === normalizedNickname && nicknameCheckStatus.valid !== null) {
+      return;
+    }
+
+    const requestId = ++nicknameCheckRequestId.current;
+    setNicknameCheckStatus({
+      loading: true,
+      valid: null,
+      message: '닉네임 사용 가능 여부를 확인하고 있어요.',
+    });
+
+    try {
+      const payload = await checkNicknameAvailability(normalizedNickname);
+      if (requestId !== nicknameCheckRequestId.current) {
+        return;
+      }
+      setNicknameCheckStatus({
+        loading: false,
+        valid: payload.valid,
+        message: payload.message,
+      });
+      setLastCheckedNickname(normalizedNickname);
+    } catch (error) {
+      if (requestId !== nicknameCheckRequestId.current) {
+        return;
+      }
+      const fallbackMessage = '닉네임 중복 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+      const message = error instanceof ApiClientError ? error.message : fallbackMessage;
+      setNicknameCheckStatus({
+        loading: false,
+        valid: false,
+        message,
+      });
+      setLastCheckedNickname(null);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const validation = validateSignupForm(form);
@@ -172,6 +236,7 @@ export function EmailSignupForm() {
       setTouched(createInitialTouched());
       setErrors(validateSignupForm(initialSignupValues));
       resetEmailCheckStatus();
+      resetNicknameCheckStatus();
     } catch (error) {
       setSuccessPayload(null);
       if (error instanceof ApiClientError) {
@@ -187,6 +252,16 @@ export function EmailSignupForm() {
             message: resolvedMessage,
           });
           setLastCheckedEmail(normalizedEmail || null);
+        }
+        if (error.response?.error.code === 'ACC_NICKNAME_DUPLICATED') {
+          nicknameCheckRequestId.current += 1;
+          const normalizedNickname = form.nickname.trim();
+          setNicknameCheckStatus({
+            loading: false,
+            valid: false,
+            message: resolvedMessage,
+          });
+          setLastCheckedNickname(normalizedNickname || null);
         }
       } else {
         setServerError('요청 중 문제가 발생했습니다.');
@@ -272,15 +347,29 @@ export function EmailSignupForm() {
               'mt-2 w-full rounded-xl border-2 bg-white px-4 py-3 text-base font-medium text-black shadow-sm transition focus:border-brand-secondary focus:outline-none focus:ring-2 focus:ring-brand-secondary/30',
               fieldHasError('nickname') ? 'border-red-500' : 'border-black/60',
             )}
-            placeholder="ex) 쪼개부기러버"
+            placeholder="ex) 쪼개부기 러버"
             value={form.nickname}
             onChange={(event) => updateField('nickname', event.target.value)}
-            onBlur={() => updateField('nickname', form.nickname)}
+            onBlur={handleNicknameBlur}
           />
           {fieldHasError('nickname') ? (
             <p className="mt-1 text-sm text-red-600">{errors.nickname}</p>
           ) : (
-            <p className="mt-1 text-xs text-black/50">2~20자, 한글/영문/숫자 사용 가능</p>
+            <p className="mt-1 text-xs text-black/50">2~20자, 한글/영문/숫자/밑줄/공백을 사용할 수 있어요.</p>
+          )}
+          {nicknameCheckStatus.message && !fieldHasError('nickname') && (
+            <p
+              className={cn(
+                'mt-1 text-sm',
+                nicknameCheckStatus.loading
+                  ? 'text-black/60'
+                  : nicknameCheckStatus.valid
+                    ? 'text-emerald-600'
+                    : 'text-red-600',
+              )}
+            >
+              {nicknameCheckStatus.message}
+            </p>
           )}
         </div>
 

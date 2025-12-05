@@ -6,12 +6,14 @@ import { EmailSignupDto } from './dto/email-signup.dto';
 import { AccountStatus } from '@prisma/client';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { NicknameCheckDto } from './dto/nickname-check.dto';
 import { MailService } from '../mail/mail.service';
 import { createHash, randomBytes } from 'crypto';
 import type {
   EmailCheckResponseData,
   EmailSignupResponseData,
   LoginResponseData,
+  NicknameCheckResponseData,
   VerifyEmailResponseData,
 } from '@zzogaebook/types';
 import { LoginDto } from './dto/login.dto';
@@ -57,9 +59,11 @@ export class AuthService {
   }
 
   async emailSignup(dto: EmailSignupDto): Promise<EmailSignupResponseData> {
+    const normalizedNickname = dto.nickname.trim();
+
     const existing = await this.prisma.user.findFirst({
       where: {
-        OR: [{ email: dto.email }, { nickname: dto.nickname }],
+        OR: [{ email: dto.email }, { nickname: normalizedNickname }],
       },
       select: {
         email: true,
@@ -81,7 +85,7 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
-        nickname: dto.nickname,
+        nickname: normalizedNickname,
         passwordHash,
         status: AccountStatus.PENDING,
         termsAgreedAt: dto.agreeTerms ? agreedAt : null,
@@ -136,6 +140,31 @@ export class AuthService {
     return {
       valid: true,
       message: '사용 가능한 이메일입니다.',
+    };
+  }
+
+  async checkNicknameAvailability(nickname: string): Promise<NicknameCheckResponseData> {
+    const normalizedNickname = nickname.trim();
+
+    const existing = await this.prisma.user.findUnique({
+      where: {
+        nickname: normalizedNickname,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existing) {
+      return {
+        valid: false,
+        message: '이미 사용 중인 닉네임입니다.',
+      };
+    }
+
+    return {
+      valid: true,
+      message: '사용 가능한 닉네임입니다.',
     };
   }
 
