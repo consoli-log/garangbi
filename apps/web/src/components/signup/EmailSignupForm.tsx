@@ -9,6 +9,7 @@ import {
   signupFields,
   validateSignupField,
   validateSignupForm,
+  passwordRules,
 } from '../../lib/validation/signupValidation';
 import type { SignupErrors } from '../../lib/validation/signupValidation';
 import { cn } from '../../lib/utils';
@@ -273,6 +274,14 @@ export function EmailSignupForm() {
 
   const fieldHasError = (field: keyof EmailSignupRequest) => touched[field] && Boolean(errors[field]);
 
+  const passwordChecklist = [
+    { label: `${passwordRules.minLength}자 이상`, valid: form.password.length >= passwordRules.minLength },
+    { label: '대문자 포함', valid: passwordRules.hasUpper(form.password) },
+    { label: '소문자 포함', valid: passwordRules.hasLower(form.password) },
+    { label: '숫자 포함', valid: passwordRules.hasDigit(form.password) },
+    { label: '특수문자 포함', valid: passwordRules.hasSpecial(form.password) },
+  ];
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6" noValidate>
       <div>
@@ -391,10 +400,36 @@ export function EmailSignupForm() {
             onChange={(event) => updateField('password', event.target.value)}
             onBlur={() => updateField('password', form.password)}
           />
+          <ul className="mt-2 grid grid-cols-5 gap-1 text-[11px] leading-tight">
+            {passwordChecklist.map((rule) => (
+              <li
+                key={rule.label}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md border px-2 py-1 transition-colors',
+                  rule.valid
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+                    : 'border-black/10 bg-white text-black/60',
+                )}
+              >
+                <span
+                  className={cn(
+                    'inline-flex h-4 w-4 items-center justify-center rounded-full border text-[10px] font-bold transition-colors',
+                    rule.valid
+                      ? 'border-emerald-500 bg-emerald-500 text-white'
+                      : 'border-black/20 bg-white text-black/60',
+                  )}
+                  aria-hidden="true"
+                >
+                  {rule.valid ? '✓' : '·'}
+                </span>
+                <span className="leading-tight">{rule.label}</span>
+              </li>
+            ))}
+          </ul>
           {fieldHasError('password') ? (
             <p className="mt-1 text-sm text-red-600">{errors.password}</p>
           ) : (
-            <p className="mt-1 text-xs text-black/50">영문과 숫자를 조합해 주세요.</p>
+            <p className="mt-1 text-xs text-black/50">대소문자, 숫자, 특수문자를 포함해 주세요.</p>
           )}
         </div>
 
