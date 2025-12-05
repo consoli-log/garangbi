@@ -210,6 +210,31 @@ pnpm test --filter server
 
 ---
 
+## 📂 DB 데이터 확인
+
+### 1. Prisma Studio로 보기
+```bash
+pnpm prisma:studio
+```
+
+### 2. psql 콘솔로 직접 보기
+```bash
+docker exec -it zzogaebook-db psql -U zzogaebook -d zzogaebook_db
+
+# 프롬프트가 이렇게 바뀜
+zzogaebook_db=>
+
+# 테이블 목록보기
+\dt 
+
+# 쿼리 작성하기
+SELECT * FROM "User" LIMIT 10;
+
+# 끝나고 빠져나오기
+\q
+```
+---
+
 ## 🚨 기능 개발 흐름
 
 ### 1. main 최신으로 맞추기
@@ -249,23 +274,8 @@ git push -u origin feat/users-module
 
 ---
 
-<!-- 이 프로젝트에는 AI 작업 규칙 문서가 있어.
-docs/ai/agent.md 파일을 먼저 읽고, 거기 적힌 규칙을 네 시스템 프롬프트처럼 항상 지켜줘.
-특히:
 
-- 요청 종류를 먼저 묻기
-- 내가 코드 보내면 먼저 "분석 끝"만 말하기
-- "승인" 또는 "진행해줘" 전에는 코드 작성 금지
-  지금 docs/ai/agent.md를 읽고, 핵심 규칙만 요약해봐.
 
-이 프로젝트의 기능 요구사항은 docs/specs/03_functional-spec.md 에 정리되어 있어.
-앞으로 기능을 설계하거나 구현할 때는 항상 이 문서를 기준으로 삼아줘.
 
-지금 ACC-001(이메일 회원가입) 기능을 구현하려고 하는데,
-1) 백엔드 API 설계 (URL, 메서드, 요청/응답 스키마)
-2) 서버 NestJS 모듈/컨트롤러/서비스 뼈대
-3) 프론트 React 페이지 기본 뼈대
-
-를 위 문서를 참고해서 단계별로 제안해줘. -->
 
 ---
