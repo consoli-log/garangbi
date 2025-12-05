@@ -4,6 +4,8 @@ import type {
   EmailSignupResponseData,
   LoginRequest,
   LoginResponseData,
+  ResendVerificationRequest,
+  ResendVerificationResponseData,
   VerifyEmailRequest,
   VerifyEmailResponseData,
 } from '@zzogaebook/types';
@@ -19,6 +21,12 @@ export function checkEmailAvailability(email: string): Promise<EmailCheckRespons
 
 export function verifyEmail(payload: VerifyEmailRequest): Promise<VerifyEmailResponseData> {
   return apiPost<VerifyEmailResponseData>('/auth/verify-email', payload);
+}
+
+export function resendVerificationEmail(
+  payload: ResendVerificationRequest,
+): Promise<ResendVerificationResponseData> {
+  return apiPost<ResendVerificationResponseData>('/auth/resend-verification', payload);
 }
 
 export function login(payload: LoginRequest): Promise<LoginResponseData> {

@@ -42,6 +42,18 @@ export interface VerifyEmailResponseData {
 
 export type VerifyEmailResponse = ApiSuccess<VerifyEmailResponseData>;
 
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+export interface ResendVerificationResponseData {
+  email: string;
+  status: AccountStatus;
+  message: string;
+}
+
+export type ResendVerificationResponse = ApiSuccess<ResendVerificationResponseData>;
+
 export interface LoginRequest {
   email: string;
   password: string;

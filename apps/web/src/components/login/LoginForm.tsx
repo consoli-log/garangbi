@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { LoginRequest, LoginResponseData } from '@zzogaebook/types';
-import { login } from '../../lib/api/auth';
+import { login, resendVerificationEmail } from '../../lib/api/auth';
 import { ApiClientError } from '../../lib/api/http';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../stores/authStore';
@@ -15,12 +15,17 @@ const initialForm: LoginRequest = {
 export function LoginForm() {
   const [form, setForm] = useState<LoginRequest>(initialForm);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [canResend, setCanResend] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [successPayload, setSuccessPayload] = useState<LoginResponseData | null>(null);
   const setSession = useAuthStore((state) => state.setSession);
 
   const updateField = (field: keyof LoginRequest, value: string | boolean) => {
     setServerError(null);
+    setResendMessage(null);
+    setCanResend(false);
     setSuccessPayload(null);
     setForm((prev) => ({
       ...prev,
@@ -37,6 +42,8 @@ export function LoginForm() {
 
     setIsSubmitting(true);
     setServerError(null);
+    setCanResend(false);
+    setResendMessage(null);
     try {
       const payload = await login(form);
       setSession(payload.accessToken, payload.expiresIn, {
@@ -57,6 +64,8 @@ export function LoginForm() {
       setSuccessPayload(null);
       if (error instanceof ApiClientError) {
         const rawMessage = error.response?.error.message;
+        const isPending = error.response?.error.code === 'ACC_LOGIN_PENDING';
+        setCanResend(Boolean(error.response?.error.canResend && isPending));
         setServerError(
           Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage ?? error.message,
         );
@@ -65,6 +74,31 @@ export function LoginForm() {
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!form.email) {
+      setResendMessage('가입 시 사용한 이메일을 입력하고 다시 시도해주세요.');
+      return;
+    }
+
+    setIsResending(true);
+    setResendMessage(null);
+    try {
+      const payload = await resendVerificationEmail({ email: form.email });
+      setResendMessage(payload.message);
+    } catch (error) {
+      if (error instanceof ApiClientError) {
+        const rawMessage = error.response?.error.message;
+        setResendMessage(
+          Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage ?? error.message,
+        );
+      } else {
+        setResendMessage('재발송 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      }
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -95,6 +129,25 @@ export function LoginForm() {
       {serverError && (
         <div className="rounded-2xl border-2 border-red-500 bg-red-50 p-4 text-sm text-red-700">
           {serverError}
+        </div>
+      )}
+      {canResend && (
+        <div className="rounded-2xl border-2 border-blue-500 bg-blue-50 p-4 text-sm text-blue-900">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="font-semibold">인증 메일을 다시 받을 수 있어요.</p>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={isResending}
+              className={cn(
+                'inline-flex items-center justify-center rounded-xl border border-blue-500 px-3 py-2 text-xs font-semibold transition',
+                isResending ? 'bg-blue-200 text-blue-700' : 'bg-white hover:bg-blue-100',
+              )}
+            >
+              {isResending ? '재발송 중...' : '다시 보내기'}
+            </button>
+          </div>
+          {resendMessage && <p className="mt-2 text-xs text-blue-800">{resendMessage}</p>}
         </div>
       )}
 
